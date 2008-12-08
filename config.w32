@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("pure_mvc", "for pure_mvc support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("pure_mvc", "enable pure_mvc support", "no");
+
+if (PHP_PURE_MVC != "no") {
+	EXTENSION("pure_mvc", "pure_mvc.c");
+}
+
