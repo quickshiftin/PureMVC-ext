@@ -35,67 +35,87 @@ ZEND_DECLARE_MODULE_GLOBALS(pure_mvc)
 static int le_pure_mvc;
 
 /* ICommand */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_command_execute, 0, 0, 2)
-	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
-ZEND_END_ARG_INFO()
-static function_entry pure_mvc_command_iface_methods [] = {
+static
+ZEND_BEGIN_ARG_INFO(arginfo_command_execute, 0)
+	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+ZEND_END_ARG_INFO();
+static
+function_entry puremvc_command_iface_methods [] = {
 	PHP_ABSTRACT_ME(ICommand, execute, arginfo_command_execute)
 	{ NULL, NULL, NULL }
 };
 /* IController */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_registerCommand, 0, 0, 2)
 	ZEND_ARG_INFO(0, notificationName)
 	ZEND_ARG_INFO(0, commandClassRef)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_executeCommand, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
-ZEND_END_ARG_INFO()
+	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+ZEND_END_ARG_INFO();
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_removeCommand, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, notificationName)
+	ZEND_ARG_INFO(0, notificationName)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_controller_iface_methods[] = {
+static
+function_entry puremvc_controller_iface_methods[] = {
 	PHP_ABSTRACT_ME(IController, registerCommand, arginfo_controller_registerCommand)
 	PHP_ABSTRACT_ME(IController, executeCommand, arginfo_controller_executeCommand)
 	PHP_ABSTRACT_ME(IController, removeCommand, arginfo_controller_removeCommand)
 	{ NULL, NULL, NULL }
 };
 /* IFacade */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_retrieveProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, proxyName)
+	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_hasProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, proxyName)
+	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_removeProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, proxyName)
+	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_registerCommand, 0, 0, 2)
-	ZEND_ARG_INFO_EX(0, noteName)
-	ZEND_ARG_INFO_EX(0, commandClassRef)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_registerProxy, 0, 0, 2)
+	ZEND_ARG_INFO(0, noteName)
+	ZEND_ARG_INFO(0, commandClassRef)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_notifyObserves, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, note, INotification, 0)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_registerCommand, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "command", "ICommand", 0)
 ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_notifyObservers, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "note", "INotification", 0)
+ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_registerMediator, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, mediator, IMediator, 0)
+	ZEND_ARG_OBJ_INFO(0, "mediator", "IMediator", 0)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_retrievemediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, mediatorName)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_retrieveMediator, 0, 0, 1)
+	ZEND_ARG_INFO(0, mediatorName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_hasMediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, mediatorName)
+	ZEND_ARG_INFO(0, mediatorName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_removeMediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, mediatorName)
+	ZEND_ARG_INFO(0, mediatorName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_sendNotification, 0, 0, 3)
-	ZEND_ARG_INFO_EX(0, notificationName)
-	ZEND_ARG_INFO_EX(0, body)
-	ZEND_ARG_INFO_EX(0, type)
+	ZEND_ARG_INFO(0, notificationName)
+	ZEND_ARG_INFO(0, body)
+	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_facade_iface_methods[] = {
 	PHP_ABSTRACT_ME(IFacade, registerProxy, arginfo_facade_registerProxy)
-	PHP_ABSTRACT_ME(IFacade, retrieveProxy, arginof_facade_retrieveProxy)
+	PHP_ABSTRACT_ME(IFacade, retrieveProxy, arginfo_facade_retrieveProxy)
 	PHP_ABSTRACT_ME(IFacade, hasProxy, arginfo_facade_hasProxy)
 	PHP_ABSTRACT_ME(IFacade, removeProxy, arginfo_facade_removeProxy)
 	PHP_ABSTRACT_ME(IFacade, registerCommand, arginfo_facade_registerCommand)
@@ -108,34 +128,40 @@ static function_entry puremvc_facade_iface_methods[] = {
 	{ NULL, NULL, NULL }
 };
 /* IMediator */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_setViewComponent)
-	ZEND_ARG_INFO_EX(0, viewComponent)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_setViewComponent, 0, 0, 1)
+	ZEND_ARG_INFO(0, viewComponent)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_handleNotification)
-	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_handleNotification, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_mediator_iface_methods[] = {
 	PHP_ABSTRACT_ME(IMediator, getMediatorName, NULL)
 	PHP_ABSTRACT_ME(IMediator, getViewComponent, NULL)
-	PHP_ABSTRACT_ME(IMediator, setViewComponent, arginfo_mediator_setViewComponent, 0, 0, 1);
+	PHP_ABSTRACT_ME(IMediator, setViewComponent, arginfo_mediator_setViewComponent)
 	PHP_ABSTRACT_ME(IMediator, listNotificationInterests, NULL)
-	PHP_ABSTRACT_ME(IMediator, handleNotification, arginfo_mediator_handleNotification, 0, 0, 1);
+	PHP_ABSTRACT_ME(IMediator, handleNotification, arginfo_mediator_handleNotification)
 	PHP_ABSTRACT_ME(IMediator, onRegister, NULL)
 	PHP_ABSTRACT_ME(IMediator, onRemove, NULL)
 	{ NULL, NULL, NULL }
 };
 /* IMdoel */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_model_registerProxy, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, proxy, IProxy, 0)
+	ZEND_ARG_OBJ_INFO(0, "proxy", "IProxy", 0)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INF0_EX(arginfo_model_retrieveProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, proxyName)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_model_retrieveProxy, 0, 0, 1)
+	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_model_removeProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, proxyName)
+	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_model_hasProxy, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, hasProxy)
+	ZEND_ARG_INFO(0, hasProxy)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_model_iface_methods[] = {
 	PHP_ABSTRACT_ME(IModel, registerProxy, arginfo_model_registerProxy)
@@ -145,13 +171,15 @@ static function_entry puremvc_model_iface_methods[] = {
 	{ NULL, NULL, NULL }
 };
 /* INotification */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_notification_setBody, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, body)
+	ZEND_ARG_INFO(0, body)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_notification_setType, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, type)
+	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_notification_methods[] = {
+static function_entry puremvc_notification_iface_methods[] = {
 	PHP_ABSTRACT_ME(INotification, getName, NULL)
 	PHP_ABSTRACT_ME(INotification, setBody, arginfo_notification_setBody)
 	PHP_ABSTRACT_ME(INotification, getBody, NULL)
@@ -161,77 +189,88 @@ static function_entry puremvc_notification_methods[] = {
 	{ NULL, NULL, NULL }
 };
 /* INotifier */
+static
 ZEND_BEGIN_ARG_INFO(arginfo_notifier_sendNotification, 0)
-	ZEND_ARG_INFO_EX(0, notificationName)
-	ZEND_ARG_INFO_EX(0, body)
-	ZEND_ARG_INFO_EX(0, type)
+	ZEND_ARG_INFO(0, notificationName)
+	ZEND_ARG_INFO(0, body)
+	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_notifier_methods[] = {
+static function_entry puremvc_notifier_iface_methods[] = {
 	PHP_ABSTRACT_ME(INotifier, sendNotification, arginfo_notifier_sendNotification)
 	{ NULL, NULL, NULL }
 };
 /* IObserver */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_setNotifyMethod, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, setNotifyMethod)
+	ZEND_ARG_INFO(0, setNotifyMethod)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_setNotifyContent, 0, 0, 1)
-	ZEND_ARG_INF(0, notifyContent)
+	ZEND_ARG_INFO(0, notifyContent)
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_notifyObserver, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
+	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO(arginfo_observer_compareNotifyContent, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, object)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_compareNotifyContent, 0, 0, 1)
+	ZEND_ARG_INFO(0, object)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_observer_methods[] = {
+static function_entry puremvc_observer_iface_methods[] = {
 	PHP_ABSTRACT_ME(IObserver, setNotifyMethod, arginfo_observer_setNotifyMethod)
 	PHP_ABSTRACT_ME(IObserver, setNotifyContent, arginfo_observer_setNotifyContent)
 	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_observer_notifyObserver)
-	PHP_ABSTRACT_ME(IObserver, compareNotifyContext, arginfo_observer_compareNotifyComponent)
+	PHP_ABSTRACT_ME(IObserver, compareNotifyContext, arginfo_observer_compareNotifyContent)
 	{ NULL, NULL, NULL }
-}
+};
 /* IProxy */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_proxy_setData, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, data)
-ZEND_END_ARGINFO()
-static function_entry puremvc_proxy_methods[] = {
+	ZEND_ARG_INFO(0, data)
+ZEND_END_ARG_INFO()
+static function_entry puremvc_proxy_iface_methods[] = {
 	PHP_ABSTRACT_ME(IProxy, getProxyName, NULL)
 	PHP_ABSTRACT_ME(IProxy, getData, NULL)
 	PHP_ABSTRACT_ME(IProxy, setData, arginfo_proxy_setData)
-	PHP_ABSTRACT_ME(IProxy, onRegister NULL)
+	PHP_ABSTRACT_ME(IProxy, onRegister, NULL)
 	PHP_ABSTRACT_ME(IProxy, onRemove, NULL)
 	{ NULL, NULL, NULL }
 };
 /* IView */
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_notifyObservers, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, note, INotification, 0)
-ZEND_END_ARG_INFO
+	ZEND_ARG_OBJ_INFO(0, "note", "INotification", 0)
+ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerMediator, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, mediator, IMediator, 0)
+	ZEND_ARG_OBJ_INFO(0, "mediator", "IMediator", 0)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INF_EX(arginfo_view_retrieveMediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(o, mediatorName)
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_retrieveMediator, 0, 0, 1)
+	ZEND_ARG_INFO(0, "mediatorName")
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_removeMediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, mediatorName)
+	ZEND_ARG_INFO(0, "mediatorName")
 ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_hasMediator, 0, 0, 1)
-	ZEND_ARG_INFO_EX(0, mediatorName)
+	ZEND_ARG_INFO(0, "mediatorName")
 ZEND_END_ARG_INFO()
-static function_entry puremvc_view_methods[] = {
+static function_entry puremvc_view_iface_methods[] = {
 	PHP_ABSTRACT_ME(IView, notifyObservers, arginfo_view_notifyObservers)
 	PHP_ABSTRACT_ME(IView, registerMediator, arginfo_view_registerMediator)
 	PHP_ABSTRACT_ME(IView, retrieveMediator, arginfo_view_retrieveMediator)
 	PHP_ABSTRACT_ME(IView, removeMediator, arginfo_view_removeMediator)
 	PHP_ABSTRACT_ME(IView, hasMediator, arginfo_view_hasMediator)
 	{ NULL, NULL, NULL }
-}
+};
 
 /* {{{ pure_mvc_functions[]
  *
  * Every user visible function must have an entry in pure_mvc_functions[].
  */
-zend_function_entry puremvc_functions[] = {
+zend_function_entry pure_mvc_functions[] = {
 	PHP_FE(confirm_pure_mvc_compiled,	NULL)		/* For testing, remove later. */
 	{NULL, NULL, NULL}	/* Must be the last line in pure_mvc_functions[] */
 };
@@ -301,7 +340,7 @@ PHP_MINIT_FUNCTION(pure_mvc)
 	*/
 	zend_class_entry ce;
 	INIT_CLASS_ENTRY(ce, "ICommand", puremvc_command_iface_methods);
-	puremvc_command_iface_entry = zned_register_internal_class(&ce TSRMLS_CC);
+	puremvc_command_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_command_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "IController", puremvc_controller_iface_methods);
@@ -321,23 +360,23 @@ PHP_MINIT_FUNCTION(pure_mvc)
 	puremvc_model_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "INotification", puremvc_notification_iface_methods);
-	puremvc_notification_iface_entry = zend_register_internal_class(&ce, TSRMLS_CC);
+	puremvc_notification_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_notification_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "INotifier", puremvc_notifier_iface_methods);
-	puremvc_notifier_iface_entry = zend_register_internal_class(&ce, TSRMLS_CC);
+	puremvc_notifier_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_notifier_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "IObserver", puremvc_observer_iface_methods);
-	puremvc_ovserver_iface_entry = zend_register_intenal_class(&ce, TSRMLS_CC);
+	puremvc_observer_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_observer_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "IProxy", puremvc_proxy_iface_methods);
-	puremvc_proxy_iface_entry = zend_register_internal_class(&ce, TSRMLS_CC);
+	puremvc_proxy_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_proxy_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	INIT_CLASS_ENTRY(ce, "IView", puremvc_view_iface_methods);
-	puremvc_view_iface_entry = zend_register_internal_class(&ce, TSRMLS_CC);
+	puremvc_view_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_view_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	return SUCCESS;
