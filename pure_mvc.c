@@ -266,6 +266,154 @@ static function_entry puremvc_view_iface_methods[] = {
 	{ NULL, NULL, NULL }
 };
 
+/* Controller */
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_executeCommand, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "note", "INotification", 0)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_registerCommand, 0, 0, 2)
+	ZEND_ARG_INFO_EX(0, notificationName)
+	ZEND_ARG_INFO_EX(0, commandClassRef)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_hasCommand, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, commandName)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_removeCommand, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, commandName)
+ZEND_END_ARG_INFO()
+static function_entry puremvc_controller_class_methods[] = {
+	PHP_ME(Controller, __construct, NULL, ZEND_ACC_PRIVATE)
+	PHP_ME(Controller, initializeController, NULL, ZEND_ACC_PROTECTED)
+	PHP_ME(Controller, getInstance, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Controller, executeCommand, arginfo_controller_executeCommand, ZEND_ACC_PUBLIC)
+	PHP_ME(Controller, registerCommand arginfo_controller_registerCommand, ZEND_ACC_PUBLIC)
+	PHP_ME(Controller, hasCommand, arginfo_controller_hasCommand, ZEND_ACC_PUBLIC)
+	PHP_ME(Controller, removeCommand, arginfo_controller_removeCommand, ZEND_ACC_PUBLIC)
+};
+
+void puremvc_controller_addprops(zval *objvar)
+{
+	char *propname;
+	int propname_len;
+	/* protected */
+	zend_mangle_property_name(&propname, &propname_len,
+		"*", 1, "view", sizeof("view")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+	zend_mangle_property_name(&propname, &propname_len,
+		"*", 1, "commandMap", sizeof("commaneMap")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+	zend_mangle_property_name(&propname, &propname_len,
+		"*", 1, "instance", sizeof("instance")-1, 1);
+	add_property_zval_ex(objvar, &propname, &propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+}
+/* Model */
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_model_class_registerProxy, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "proxy", "IProxy", 0)
+ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO_EX(arginfo_model_class_retrieveProxy, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, proxyName)
+ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO_EX(arginfo_model_class_removeProxy, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, proxyName)
+ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO_EX(arginfo_model_class_hasProxy, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, proxyName)
+ZEND_END_ARG_INFO()
+static function_entry puremvc_model_class_methods[] = {
+	PHP_FE(Model, __construct, NULL, ZEND_ACC_PRIVATE)
+	PHP_FE(Model, initializeModel, NULL, ZEND_ACC_PROTECTED)
+	PHP_FE(Model, getInstance, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_FE(Model, registerProxy, arginfo_model_class_registerProxy, ZEND_ACC_PUBLIC)
+	PHP_FE(Model, retrieveProxy, arginfo_model_class_retrieveProxy, ZEND_ACC_PUBLIC)
+	PHP_FE(Model, removeProxy, arginfo_model_class_removeProxy, ZEND_ACC_PUBLIC)
+	PHP_FE(Model, hasProxy, arginfo_model_class_hasProxy, ZEND_ACC_PUBLIC)
+};
+
+void puremvc_model_addprops(zval *objvar)
+{
+	char *propname;
+	int propname_len;
+	/*protected*/
+	zend_mangle_property_name(&propname, &propname_len,
+		"*", 1, "instance", sizeof("instance")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+	zend_mangle_property_name(&propname, propname_len,
+		"*", 1, "proxyMap", sizeof("proxyMap")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+}
+/* View */
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerObserver, 0, 0, 2)
+	ZEND_ARG_INFO_EX(0, notificationName)
+	ZEND_ARG_OBJ_INFO(0, "observer", "IObserver", 0)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_notifyObservers, 0, 0 , 1)
+	ZEND_ARG_OBJ_INFO(0, "notefication", "INotification", 0)
+ZEND_END_ARG_INFO();
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerMediator, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "mediator", "IMeidator", 0)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_retrieveMediator, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, mediatorName)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_hasMediator, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, mediatorName)
+ZEND_END_ARG_INFO()
+static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_view_removeMediator, 0, 0, 1)
+	ZEND_ARG_INFO_EX(0, mediaName)
+ZEND_END_ARG_INFO()
+static function_entry puremvc_view_class_methods[] = {
+	PHP_ME(View, __construct, NULL, ZEND_ACC_PRIVATE);
+	PHP_ME(View, initializeView, NULL, ZEND_ACC_PROTECTED);
+	PHP_ME(View, getInstance, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC);
+	PHP_ME(View, registerObserver, arginfo_view_registerObserver, ZEND_ACC_PUBLIC);
+	PHP_ME(View, notifyObservers, arginfo_view_notifyObservers, ZEND_ACC_PUBLIC);
+	PHP_ME(View, registerMediator, arginfo_view_registerMediator, ZEND_ACC_PUBLIC);
+	PHP_ME(View, retrieveMediator, arginfo_view_retrieveMediator, ZEND_ACC_PUBLIC);
+	PHP_ME(View, hasMediator, arginfo_view_hasMediator, ZEND_ACC_PUBLIC);
+	PHP_ME(View, removewMediator, arginfo_view_removeMediator, ZEND_ACC_PUBLIC);
+};
+
+void puremvc_view_addprops(zval *objvar)
+{
+	char *propname;
+	int propname_len;
+	/* proptected */
+	zend_mangle_property_name(&propname, &propname_len,
+		"*", 1, "instance", sizeof("instance")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+	zend_mangle_property_name(&propname, propname_len,
+		"*", 1, "mediatorMap", sizeof("mediatorMap")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+	zend_mangle_property_name(&propname, propname_len,
+		"*", 1, "observerMap", sizeof("observerMap")-1, 0);
+	add_property_zval_ex(objvar, propname, propname_len,
+		"Properties", 1 TRMLS_CC);
+	efree(propname);
+}
 /* {{{ pure_mvc_functions[]
  *
  * Every user visible function must have an entry in pure_mvc_functions[].
@@ -321,6 +469,7 @@ static void php_pure_mvc_init_globals(zend_pure_mvc_globals *pure_mvc_globals)
 */
 /* }}} */
 
+/* interfaces */
 zend_class_entry *puremvc_command_iface_entry;
 zend_class_entry *puremvc_controller_iface_entry;
 zend_class_entry *puremvc_facade_iface_entry;
@@ -331,6 +480,10 @@ zend_class_entry *puremvc_notifier_iface_entry;
 zend_class_entry *puremvc_observer_iface_entry;
 zend_class_entry *puremvc_proxy_iface_entry;
 zend_class_entry *puremvc_view_iface_entry;
+/* classes */
+zend_class_entry *pure_mvc_cotroller_class_entry;
+zend_class_entry *pure_mvc_model_class_entry;
+zend_class_entry *pure_mvc_view_class_entry;
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(pure_mvc)
@@ -378,6 +531,21 @@ PHP_MINIT_FUNCTION(pure_mvc)
 	INIT_CLASS_ENTRY(ce, "IView", puremvc_view_iface_methods);
 	puremvc_view_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	puremvc_view_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
+
+	INIT_CLASS_ENTRY(ce, "Controller", puremvc_controller_class_methods);
+	puremvc_controller_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_implements(puremvc_controller_class_entry TRMLS_CC,
+				1, puremvc_controller_iface_entry);
+
+	INIT_CLASS_ENTRY(ce, "Model", puremvc_model_class_methods);
+	puremvc_model_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_implements(puremvc_model_class_entry TRMLS_CC,
+				1, puremvc_model_iface_entry);
+
+	INIT_CLASS_ENTRY(ce, "View", puremvc_view_class_methods);
+	puremvc_view_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_implements(puremvc_view_class_entry TRMLS_CC,
+				1, puremvc_view_iface_entry);
 
 	return SUCCESS;
 }
