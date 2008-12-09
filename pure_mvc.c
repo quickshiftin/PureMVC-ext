@@ -326,13 +326,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_removeProxy, 0, 0, 1)
 	ZEND_ARG_INFO(0, proxyName)
 ZEND_END_ARG_INFO()
 static
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_registerProxy, 0, 0, 2)
-	ZEND_ARG_INFO(0, noteName)
-	ZEND_ARG_INFO(0, commandClassRef)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_registerProxy, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, "proxy", "IProxy", 0)
 ZEND_END_ARG_INFO()
 static
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_registerCommand, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "command", "ICommand", 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_registerCommand, 0, 0, 2)
+	ZEND_ARG_INFO(0, noteName)
+	ZEND_ARG_INFO(0, commandClassRef)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_ifacade_notifyObservers, 0, 0, 1)
@@ -620,7 +620,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_view_notifyObservers, 0, 0 , 1)
 ZEND_END_ARG_INFO();
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerMediator, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "mediator", "IMeidator", 0)
+	ZEND_ARG_OBJ_INFO(0, "mediator", "IMediator", 0)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_retrieveMediator, 0, 0, 1)
@@ -672,23 +672,22 @@ void puremvc_view_addprops(zval *objvar)
 */
 /* MacroCommand */
 static
-ZEND_BEGIN_ARG_INFO_EX(arginfo_macroCommand_addSubCommand, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_addSubCommand, 0, 0, 1)
 	ZEND_ARG_INFO(0, commandClassRef)
 ZEND_END_ARG_INFO()
 static
-ZEND_BEGIN_ARG_INFO_EX(arginfo_macroCommand_execute, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_execute, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_macroCommand_class_methods[] = {
+static function_entry puremvc_macrocommand_class_methods[] = {
 	PHP_ME(MacroCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
 	PHP_ME(MacroCommand, initializeMacroCommand, NULL, ZEND_ACC_PROTECTED)
-	PHP_ME(MacroCommand, addSubCommand, arginfo_macroCommand_addSubCommand, ZEND_ACC_PROTECTED)
-	PHP_ME(MacroCommand, execute, arginfo_macroCommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
+	PHP_ME(MacroCommand, addSubCommand, arginfo_macrocommand_addSubCommand, ZEND_ACC_PROTECTED)
+	PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
 	{ NULL, NULL, NULL }
 };
-
 /*
-void puremvc_macroCommand_addprops(zval *objvar)
+void puremvc_macrocommand_addprops(zval *objvar)
 {
 	char *propname;
 	int propname_len;
@@ -702,17 +701,16 @@ void puremvc_macroCommand_addprops(zval *objvar)
 }
 */
 /* SimpleCommand */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_simpleCommand_execute, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_simplecommand_execute, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 ZEND_END_ARG_INFO()
-static function_entry puremvc_simpleCommand_class_methods[] = {
+static function_entry puremvc_simplecommand_class_methods[] = {
 	PHP_ME(SimpleCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
-	PHP_ME(SimpleCommand, execute, arginfo_simpleCommand_execute, ZEND_ACC_PUBLIC)
+	PHP_ME(SimpleCommand, execute, arginfo_simplecommand_execute, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-
 /*
-void puremvc_simpleCommand_addprops(zval *objvar)
+void puremvc_simplecommand_addprops(zval *objvar)
 {
 	char *propname;
 	int propname_len;
@@ -731,7 +729,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_notifyObservers, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_facade_registerCommand, 0, 0, 2)
-	ZEND_ARG_INFO(0, notificationName)
+	ZEND_ARG_INFO(0, noteName)
 	ZEND_ARG_INFO(0, commandClassRef)
 ZEND_END_ARG_INFO()
 static
@@ -863,10 +861,11 @@ void puremvc_mediator_addprops(zval *objvar)
 	efree(propname);
 }
 */
+/*
 void puremvc_mediator_addconstants(zend_class_entry *ce)
 {
 	zval *constval;
-	/* const */
+	// const /
 	constval = pemalloc(sizeof(zval), 1);
 	INIT_PZVAL(constval);
 	Z_TYPE_P(constval) = IS_STRING;
@@ -878,6 +877,7 @@ void puremvc_mediator_addconstants(zend_class_entry *ce)
 						"NAME", sizeof("NAME"),
 						(void*)&constval, sizeof(zval*), NULL);
 }
+*/
 /* Notification */
 static
 ZEND_BEGIN_ARG_INFO(arginfo_notification__construct, 0)
@@ -939,7 +939,6 @@ static function_entry puremvc_notifier_class_methods[] = {
 	PHP_ME(Notifier, sendNotification, arginfo_notifier_sendNotification, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-
 /*
 void puremvc_notifier_addprops(zval *objvar)
 {
@@ -1046,10 +1045,11 @@ void puremvc_proxy_addprops(zval *objvar)
 
 }
 */
+/*
 void puremvc_proxy_addconstants(zend_class_entry *ce)
 {
 	zval *constval;
-	/* const */
+	// const /
 	constval = pemalloc(sizeof(zval), 1);
 	INIT_PZVAL(constval);
 	Z_TYPE_P(constval) = IS_STRING;
@@ -1062,6 +1062,7 @@ void puremvc_proxy_addconstants(zend_class_entry *ce)
 						(void*)&constval, sizeof(zval*), NULL);
 
 }
+*/
 /* {{{ pure_mvc_functions[]
  *
  * Every user visible function must have an entry in pure_mvc_functions[].
@@ -1133,13 +1134,13 @@ zend_class_entry *puremvc_controller_class_entry;
 zend_class_entry *puremvc_model_class_entry;
 zend_class_entry *puremvc_view_class_entry;
 /* pattern - classes */
-zend_class_entry *puremvc_macroCommand_class_entry;
-zend_class_entry *puremvc_simpleCommand_class_entry;
-zend_class_entry *puremvc_facade_class_entry;
-zend_class_entry *puremvc_mediator_class_entry;
 zend_class_entry *puremvc_notification_class_entry;
 zend_class_entry *puremvc_notifier_class_entry;
 zend_class_entry *puremvc_observer_class_entry;
+zend_class_entry *puremvc_facade_class_entry;
+zend_class_entry *puremvc_mediator_class_entry;
+zend_class_entry *puremvc_macrocommand_class_entry;
+zend_class_entry *puremvc_simplecommand_class_entry;
 zend_class_entry *puremvc_proxy_class_entry;
 /* {{{ PHP_MINIT_FUNCTION
  */
@@ -1222,44 +1223,37 @@ PHP_MINIT_FUNCTION(pure_mvc)
 	zend_class_implements(puremvc_observer_class_entry TSRMLS_CC,
 				1, puremvc_observer_iface_entry);
 
-	INIT_CLASS_ENTRY(ce, "MacroCommand", puremvc_macroCommand_class_methods);
-	puremvc_macroCommand_class_entry = zend_register_internal_class_ex(&ce, 
-				puremvc_notifier_class_entry, "Notifier" TSRMLS_CC);
-	zend_class_implements(puremvc_macroCommand_class_entry TSRMLS_CC,
-				1, puremvc_command_iface_entry);
-	zend_class_implements(puremvc_macroCommand_class_entry TSRMLS_CC,
-				2, puremvc_notifier_iface_entry);
-
-	INIT_CLASS_ENTRY(ce, "SimpleCommand", puremvc_simpleCommand_class_methods);
-	puremvc_simpleCommand_class_entry = zend_register_internal_class_ex(&ce,
-				puremvc_notifier_class_entry, "Notifier" TSRMLS_CC);
-	zend_class_implements(puremvc_simpleCommand_class_entry TSRMLS_CC,
-				1, puremvc_command_iface_entry);
-	zend_class_implements(puremvc_simpleCommand_class_entry TSRMLS_CC,
-				2, puremvc_notifier_iface_entry);
-
 	INIT_CLASS_ENTRY(ce, "Facade", puremvc_facade_class_methods);
 	puremvc_facade_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	zend_class_implements(puremvc_facade_class_entry TSRMLS_CC,
 				1, puremvc_facade_iface_entry);
 
+	INIT_CLASS_ENTRY(ce, "MacroCommand", puremvc_macrocommand_class_methods);
+	puremvc_macrocommand_class_entry = zend_register_internal_class_ex(&ce, 
+				puremvc_notifier_class_entry, NULL TSRMLS_CC);
+	zend_class_implements(puremvc_macrocommand_class_entry TSRMLS_CC,
+				1, puremvc_command_iface_entry);
+	//puremvc_macrocommand_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
+
+	INIT_CLASS_ENTRY(ce, "SimpleCommand", puremvc_simplecommand_class_methods);
+	puremvc_simplecommand_class_entry = zend_register_internal_class_ex(&ce, 
+				puremvc_notifier_class_entry, NULL TSRMLS_CC);
+	zend_class_implements(puremvc_simplecommand_class_entry TSRMLS_CC,
+				1, puremvc_command_iface_entry);
+
 	INIT_CLASS_ENTRY(ce, "Mediator", puremvc_mediator_class_methods);
 	puremvc_mediator_class_entry = zend_register_internal_class_ex(&ce,
-				puremvc_notifier_class_entry, "Notifier" TSRMLS_CC);
+				puremvc_notifier_class_entry, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_mediator_class_entry TSRMLS_CC,
 				1, puremvc_mediator_iface_entry);
-	zend_class_implements(puremvc_mediator_class_entry TSRMLS_CC,
-				2, puremvc_notifier_iface_entry);
-	puremvc_mediator_addconstants(puremvc_mediator_class_entry);
+	//puremvc_mediator_addconstants(puremvc_mediator_class_entry);
 
 	INIT_CLASS_ENTRY(ce, "Proxy", puremvc_proxy_class_methods);
 	puremvc_proxy_class_entry = zend_register_internal_class_ex(&ce,
-				puremvc_notifier_class_entry, "Notifier" TSRMLS_CC);
+				puremvc_notifier_class_entry, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_proxy_class_entry TSRMLS_CC,
 				1, puremvc_proxy_iface_entry);
-	zend_class_implements(puremvc_proxy_class_entry TSRMLS_CC,
-				2, puremvc_notifier_iface_entry);
-	puremvc_proxy_addconstants(puremvc_proxy_class_entry);
+	//puremvc_proxy_addconstants(puremvc_proxy_class_entry);
 	return SUCCESS;
 }
 /* }}} */
