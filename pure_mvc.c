@@ -123,7 +123,7 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_update_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
 			return_value TSRMLS_CC);
 	call_user_function(EG(active_symbol_table), &object, &method, &retval, 0,
-			(zval**) NULL TSRMLS_CC);
+			(zval**)NULL TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public void MacroCommand::initializeMacroCommand
@@ -171,11 +171,58 @@ PHP_METHOD(MacroCommand, execute)
 }
 /* }}} */
 
-int puremvc_execute_commands_in_hash(zval **val, int num_args, va_list args, zend_has_key *hash_key)
+int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
 {
 	zval tmpcpy = **val;
+	zend_class_entry *ce;
+
 	zval_copy_ctor(&tmpcpy);
 	INIT_PZVAL(&tmpcpy);
+	convert_to_string(&tmpcopy);
+	php_strtolower(Z_STRVAL_PP(tmpcpy), Z_STRLEN_PP(tmpcpy));
+	if(zend_hash_find(EG(class_table),
+		Z_STRVAL_PP(tmpcpy) Z_STRLEN_PP(tmpcpy) + 1,
+		(void**)&ce) == FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE,
+			"Class %s does not exist.", Z_STRVAL_PP(tmpcpy));
+			zval_ptr_dtor(tmpcpy);
+			RETURN_FALSE;
+	}
+	object_init_ex(return_value, ce);
+	/* attempt to call constructor, if it exists */
+	if(zned_hash_exists(&ce->function_table,
+		Z_STRVAL_PP("__construct"), Z_STRLEN_PP("__construct") + 1)) {
+			zval *ctor, *dummy = NULL;
+			MAKE_STD_ZVAL(ctor);
+			array_init(ctor);
+			zval_add_ref(tmpcpy);
+			add_next_index_zval(ctor, tmpcpy);
+			zval_add_ref(tmpcpy);
+			add_next_index_zval(ctor, "__construct");
+			if(call_user_function(&ce->function_table,
+				NULL, ctor, &dummy,
+				0, (zval**)NULL	TSRMLS_CC) == FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+					"Unable to call constructor.");
+			}
+			if(dummy) {
+				zval_ptr_dtor(&dummy);
+			}
+			zval_ptr_dtor(&ctor);
+		}
+	/* attempt to call the execute() method */
+	zval *execute, *dummy = NULL;
+	MAKE_STD_ZVAL(execute);
+	array_init(execute);
+	zval_add_ref(tmpcpy);
+	add_next_index_zval(execute, "execute");
+	zval_add_ref(tmpcpy);
+//@todo: finish calling execute
+//	if(call_user_func_ex
+
+	zval_ptr_dtor(tmpcpy);
+
+	return ZEND_HASH_APPLY_REMOVE;
 }
 
 /* SimpleCommand */

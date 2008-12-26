@@ -33,6 +33,7 @@ extern zend_module_entry pure_mvc_module_entry;
 #ifdef ZTS
 #include "TSRM.h"
 #endif
+#include "ext/standard/php_string.h"
 
 PHP_MINIT_FUNCTION(pure_mvc);
 PHP_MSHUTDOWN_FUNCTION(pure_mvc);
@@ -69,7 +70,6 @@ ZEND_END_MODULE_GLOBALS(pure_mvc)
 #endif
 
 #endif	/* PHP_PURE_MVC_H */
-
 
 /*
  * Local variables:
