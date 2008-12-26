@@ -106,18 +106,78 @@ PHP_METHOD(View, removeMediator)
 {
 }
 /* MacroCommand */
+/* {{{ proto public void MacroCommand::__construct()
+   Constructor. */
 PHP_METHOD(MacroCommand, __construct)
 {
+	zval *object;
+	zval method;
+	zval retval;
+	zend_class_entry *this_ce;
+
+	ZVAL_STRING(&method, "initializeMacroCommand", 0);
+	object = getThis();
+	this_ce = ZEND_OBJCE_P(object);
+	array_init(return_value);
+	
+	zend_update_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
+			return_value TSRMLS_CC);
+	call_user_function(EG(active_symbol_table), &object, &method, &retval, 0,
+			(zval**) NULL TSRMLS_CC);
 }
+/* }}} */
+/* {{{ proto public void MacroCommand::initializeMacroCommand
+   this is a hook method to be overriden by subclasses, which will be called by the constructor */
 PHP_METHOD(MacroCommand, initializeMacroCommand)
 {
 }
+/* }}} */
+/* {{{ proto public void MacroCommand::addSubCommand commandClassRef
+   add a subcommand to this MacroCommand */
 PHP_METHOD(MacroCommand, addSubCommand)
 {
+	zval *object;
+	zval *subCommand;
+	zval *subCommands;
+	zend_class_entry *this_ce;
+
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+			&subCommand) == FAILURE) {
+		RETURN_NULL();
+	}
+	object = getThis();
+	this_ce = ZEND_OBJCE_P(object);
+	subCommands = zend_read_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
+					1 TSRMLS_CC);
+	add_next_index_zval(subCommands, subCommand);
 }
+/* }}} */
+/* {{{ proto public final void MacroCommand::execute
+   run this MacroCommand (execute subCommands that have been assigned to this MacroCommand) */ 
 PHP_METHOD(MacroCommand, execute)
 {
+	zval *notification;
+	zval *object;
+	zend_class_entry *this_ce;
+
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+			&notification) == FAILURE) {
+		RETURN_NULL();
+	}
+
+	object = getThis();
+	this_ce = ZEND_OBJCE_P(object);
+
 }
+/* }}} */
+
+int puremvc_execute_commands_in_hash(zval **val, int num_args, va_list args, zend_has_key *hash_key)
+{
+	zval tmpcpy = **val;
+	zval_copy_ctor(&tmpcpy);
+	INIT_PZVAL(&tmpcpy);
+}
+
 /* SimpleCommand */
 PHP_METHOD(SimpleCommand, __construct)
 {
