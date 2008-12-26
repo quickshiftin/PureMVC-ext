@@ -541,7 +541,7 @@ static function_entry puremvc_controller_class_methods[] = {
 	PHP_ME(Controller, removeCommand, arginfo_controller_removeCommand, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_controller_addprops(zend_class_entry *controller_ce, TSRMLS_D)
+void puremvc_controller_addprops(zend_class_entry *controller_ce TSRMLS_DC)
 {
 	/* proptected */
 	zend_declare_property_null(controller_ce, "instance", sizeof("instance")-1,
@@ -576,7 +576,7 @@ static function_entry puremvc_model_class_methods[] = {
 	{ NULL, NULL, NULL }
 };
 
-void puremvc_model_addprops(zend_class_entry *model_ce, TSRMLS_D)
+void puremvc_model_addprops(zend_class_entry *model_ce TSRMLS_DC)
 {
 	/* proptected */
 	zend_declare_property_null(model_ce, "instance", sizeof("instance")-1,
@@ -622,7 +622,7 @@ static function_entry puremvc_view_class_methods[] = {
 	PHP_ME(View, removeMediator, arginfo_view_removeMediator, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_view_addprops(zend_class_entry *view_ce, TSRMLS_D)
+void puremvc_view_addprops(zend_class_entry *view_ce TSRMLS_DC)
 {
 	/* proptected */
 	zend_declare_property_null(view_ce, "instance", sizeof("instance")-1,
@@ -648,7 +648,7 @@ static function_entry puremvc_macrocommand_class_methods[] = {
 	PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
 	{ NULL, NULL, NULL }
 };
-void puremvc_macrocommand_addprops(zend_class_entry *macrocommand_ce, TSRMLS_D)
+void puremvc_macrocommand_addprops(zend_class_entry *macrocommand_ce TSRMLS_DC)
 {
 	// private /
 	zend_declare_property_null(macrocommand_ce, "subCommands", sizeof("subCommands")-1,
@@ -663,7 +663,7 @@ static function_entry puremvc_simplecommand_class_methods[] = {
 	PHP_ME(SimpleCommand, execute, arginfo_simplecommand_execute, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_simplecommand_addprops(zend_class_entry *simplecommand_ce, TSRMLS_D)
+void puremvc_simplecommand_addprops(zend_class_entry *simplecommand_ce TSRMLS_DC)
 {
 	// protected /
 	zend_declare_property_null(simplecommand_ce, "facade", sizeof("facade")-1,
@@ -747,7 +747,7 @@ static function_entry puremvc_facade_class_methods[] = {
 	PHP_ME(Facade, sendNotification, arginfo_facade_sendNotification, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_facade_addprops(zend_class_entry *facade_ce, TSRMLS_D)
+void puremvc_facade_addprops(zend_class_entry *facade_ce TSRMLS_DC)
 {
 	// protected /
 	zend_declare_property_string(facade_ce, "model", sizeof("model")-1,
@@ -772,7 +772,7 @@ static function_entry puremvc_mediator_class_methods[] = {
 	PHP_ME(Mediator, onRemove, NULL, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_mediator_addprops(zend_class_entry *mediator_ce, TSRMLS_D)
+void puremvc_mediator_addprops(zend_class_entry *mediator_ce TSRMLS_DC)
 {
 	// proptected /
 	zend_declare_property_string(mediator_ce, "mediatorName", sizeof("mediatorName")-1,
@@ -820,7 +820,7 @@ static function_entry puremvc_notification_class_methods[] = {
 	PHP_ME(Notification, toString, NULL, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_notification_addprops(zend_class_entry *notification_ce, TSRMLS_D)
+void puremvc_notification_addprops(zend_class_entry *notification_ce TSRMLS_DC)
 {
 	// private /
 	zend_declare_property_string(notification_ce, "name", sizeof("name")-1,
@@ -842,7 +842,7 @@ static function_entry puremvc_notifier_class_methods[] = {
 	PHP_ME(Notifier, sendNotification, arginfo_notifier_sendNotification, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_notifier_addprops(zend_class_entry *notifier_ce, TSRMLS_D)
+void puremvc_notifier_addprops(zend_class_entry *notifier_ce TSRMLS_DC)
 {
 	// protected /
 	zend_declare_property_string(notifier_ce, "facade", sizeof("facade")-1,
@@ -879,7 +879,7 @@ static function_entry puremvc_observer_class_methods[] = {
 	PHP_ME(Observer, compareNotifyContext, arginfo_observer_compareNotifyContext, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_observer_addprops(zend_class_entry *observer_ce, TSRMLS_D)
+void puremvc_observer_addprops(zend_class_entry *observer_ce TSRMLS_DC)
 {
 	/* private */
 	zend_declare_property_string(observer_ce, "notify", sizeof("notify")-1,
@@ -905,7 +905,7 @@ static function_entry puremvc_proxy_class_methods[] = {
 	PHP_ME(Proxy, onRemove, NULL, ZEND_ACC_PUBLIC)
 	{ NULL, NULL, NULL }
 };
-void puremvc_proxy_addprops(zend_class_entry *proxy_ce, TSRMLS_D)
+void puremvc_proxy_addprops(zend_class_entry *proxy_ce TSRMLS_DC)
 {
 	/* protected */
 	zend_declare_property_string(proxy_ce, "proxyName", sizeof("proxyName")-1,
