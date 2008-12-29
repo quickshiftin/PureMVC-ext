@@ -117,7 +117,7 @@ PHP_METHOD(MacroCommand, __construct)
 
 	ZVAL_STRING(&method, "initializeMacroCommand", 0);
 	object = getThis();
-	this_ce = ZEND_OBJCE_P(object);
+	this_ce = zend_get_class_entry(object);
 	array_init(return_value);
 	
 	zend_update_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
@@ -146,7 +146,7 @@ PHP_METHOD(MacroCommand, addSubCommand)
 		RETURN_NULL();
 	}
 	object = getThis();
-	this_ce = ZEND_OBJCE_P(object);
+	this_ce = zend_get_class_entry(object);
 	subCommands = zend_read_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
 					1 TSRMLS_CC);
 	add_next_index_zval(subCommands, subCommand);
@@ -166,41 +166,44 @@ PHP_METHOD(MacroCommand, execute)
 	}
 
 	object = getThis();
-	this_ce = ZEND_OBJCE_P(object);
+	this_ce = zend_get_class_entry(object);
 
 }
 /* }}} */
 
 int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
 {
-	zval tmpcpy = **val;
+	zval *tmpcpy, *return_value;
 	zend_class_entry *ce;
 
-	zval_copy_ctor(&tmpcpy);
-	INIT_PZVAL(&tmpcpy);
-	convert_to_string(&tmpcopy);
-	php_strtolower(Z_STRVAL_PP(tmpcpy), Z_STRLEN_PP(tmpcpy));
+	*tmpcpy  = **val;
+	MAKE_STD_ZVAL(return_value);
+
+	zval_copy_ctor(tmpcpy);
+	INIT_PZVAL(tmpcpy);
+	convert_to_string(tmpcpy);
+	php_strtolower(Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy));
 	if(zend_hash_find(EG(class_table),
-		Z_STRVAL_PP(tmpcpy) Z_STRLEN_PP(tmpcpy) + 1,
+		Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy) + 1,
 		(void**)&ce) == FAILURE) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE,
-			"Class %s does not exist.", Z_STRVAL_PP(tmpcpy));
-			zval_ptr_dtor(tmpcpy);
+			"Class %s does not exist.", Z_STRVAL_P(tmpcpy));
+			zend_dtor(tmpcpy);
 			RETURN_FALSE;
 	}
 	object_init_ex(return_value, ce);
 	/* attempt to call constructor, if it exists */
 	if(zned_hash_exists(&ce->function_table,
-		Z_STRVAL_PP("__construct"), Z_STRLEN_PP("__construct") + 1)) {
+		"__construct", strlen("__construct") + 1)) {
 			zval *ctor, *dummy = NULL;
 			MAKE_STD_ZVAL(ctor);
 			array_init(ctor);
-			zval_add_ref(tmpcpy);
+			zval_add_ref(&tmpcpy);
 			add_next_index_zval(ctor, tmpcpy);
-			zval_add_ref(tmpcpy);
-			add_next_index_zval(ctor, "__construct");
+			zval_add_ref(&tmpcpy);
+			add_next_index_string(ctor, "__construct", 1);
 			if(call_user_function(&ce->function_table,
-				NULL, ctor, &dummy,
+				NULL, ctor, dummy,
 				0, (zval**)NULL	TSRMLS_CC) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,
 					"Unable to call constructor.");
@@ -214,13 +217,13 @@ int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
 	zval *execute, *dummy = NULL;
 	MAKE_STD_ZVAL(execute);
 	array_init(execute);
-	zval_add_ref(tmpcpy);
-	add_next_index_zval(execute, "execute");
-	zval_add_ref(tmpcpy);
+	zval_add_ref(&tmpcpy);
+	add_next_index_string(execute, "execute", 1);
+	zval_add_ref(&tmpcpy);
 //@todo: finish calling execute
 //	if(call_user_func_ex
 
-	zval_ptr_dtor(tmpcpy);
+	zval_dtor(tmpcpy);
 
 	return ZEND_HASH_APPLY_REMOVE;
 }
