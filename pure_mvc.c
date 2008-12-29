@@ -156,29 +156,42 @@ PHP_METHOD(MacroCommand, addSubCommand)
    run this MacroCommand (execute subCommands that have been assigned to this MacroCommand) */ 
 PHP_METHOD(MacroCommand, execute)
 {
-	zval *notification;
-	zval *object;
-	zend_class_entry *this_ce;
+	zval *this, *notification, **subCommandsVal;
 
 	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&notification) == FAILURE) {
 		RETURN_NULL();
 	}
 
-	object = getThis();
-	this_ce = zend_get_class_entry(object);
+	this = getThis();
 
+	/* get the $subCommands HashTable, wraped in a zval */
+	if(zend_hash_find(Z_OBJPROP_P(this), "subCommands", sizeof("subCommands"),
+		(void**)&subCommandsVal) == FAILURE) {
+		return;		// subCommands doesnt exist..
+	}
+
+	/*  iterate over the subCommands calling the execute() method on
+	 *	instances of them we make; poping them off $subCommands as we go
+	 */
+	for( zend_hash_internal_pointer_reset(Z_ARRVAL_PP(subCommandsVal));
+		 zend_hash_has_more_elements(Z_ARRVAL_PP(subCommandsVal)) == SUCCESS;
+		 zend_hash_move_forward(Z_ARRVAL_PP(subCommandsVal)) ) {
+		puremvc_execute_command_in_hash(&this, notification);
+	}
 }
 /* }}} */
 
-int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
+/*	note: this will remove the command from the hash after executing it */
+int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 {
 	zval *tmpcpy, *return_value;
 	zend_class_entry *ce;
+	zval *execute_args = {notification};
 
-	*tmpcpy  = **val;
 	MAKE_STD_ZVAL(return_value);
 
+	*tmpcpy  = **val;
 	zval_copy_ctor(tmpcpy);
 	INIT_PZVAL(tmpcpy);
 	convert_to_string(tmpcpy);
@@ -191,9 +204,10 @@ int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
 			zend_dtor(tmpcpy);
 			RETURN_FALSE;
 	}
+
 	object_init_ex(return_value, ce);
 	/* attempt to call constructor, if it exists */
-	if(zned_hash_exists(&ce->function_table,
+	if(zend_hash_exists(&ce->function_table,
 		"__construct", strlen("__construct") + 1)) {
 			zval *ctor, *dummy = NULL;
 			MAKE_STD_ZVAL(ctor);
@@ -204,26 +218,38 @@ int puremvc_execute_commands_in_hash(zval **val TSRMLS_DC)
 			add_next_index_string(ctor, "__construct", 1);
 			if(call_user_function(&ce->function_table,
 				NULL, ctor, dummy,
-				0, (zval**)NULL	TSRMLS_CC) == FAILURE) {
+				0, (void**)NULL	TSRMLS_CC) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,
 					"Unable to call constructor.");
 			}
-			if(dummy) {
+			if(dummy)
 				zval_ptr_dtor(&dummy);
-			}
 			zval_ptr_dtor(&ctor);
-		}
-	/* attempt to call the execute() method */
-	zval *execute, *dummy = NULL;
-	MAKE_STD_ZVAL(execute);
-	array_init(execute);
-	zval_add_ref(&tmpcpy);
-	add_next_index_string(execute, "execute", 1);
-	zval_add_ref(&tmpcpy);
-//@todo: finish calling execute
-//	if(call_user_func_ex
-
+	}
 	zval_dtor(tmpcpy);
+
+	/* attempt to call the execute() method */
+	if(zend_hash_exists(&ce->function_table,
+		"execute", strlen("execute") +1)) {
+		zval *execute, *return_val= NULL;
+		MAKE_STD_ZVAL(execute);
+		array_init(execute);
+		add_next_index_zval(execute, notification);
+		zval_add_ref(&notification);
+		add_next_index_string(execute, "execute", 1);
+		zval_add_ref(&notification);
+		if(call_user_function(&ce->function_table,
+			NULL, execute, return_val,
+			1, &execute_args TSRMLS_CC) == FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"Unable to call execute.");
+		}
+		if(return_val)
+			zval_ptr_dtor(&return_val);
+		zval_ptr_dtor(&execute);
+	}
+	zval_dtor(tmpcpy);
+	zval_dtor(return_value);
 
 	return ZEND_HASH_APPLY_REMOVE;
 }
