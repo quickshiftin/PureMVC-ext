@@ -25,7 +25,9 @@ $macroCmd->execute(new MyNotification());
 var_dump($macroCmd);
 ?>
 --EXPECT--
-object(MacroCommand)#1 (1) {
+object(MacroCommand)#1 (2) {
+  ["facade:protected"]=>
+  string(0) ""
   ["subCommands:private"]=>
   array(0) {
   }
