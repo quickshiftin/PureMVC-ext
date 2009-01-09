@@ -31,6 +31,32 @@
 ZEND_DECLARE_MODULE_GLOBALS(pure_mvc)
 */
 
+/* interfaces */
+zend_class_entry *puremvc_command_iface_entry;
+zend_class_entry *puremvc_controller_iface_entry;
+zend_class_entry *puremvc_facade_iface_entry;
+zend_class_entry *puremvc_mediator_iface_entry;
+zend_class_entry *puremvc_model_iface_entry;
+zend_class_entry *puremvc_notification_iface_entry;
+zend_class_entry *puremvc_notifier_iface_entry;
+zend_class_entry *puremvc_observer_iface_entry;
+zend_class_entry *puremvc_proxy_iface_entry;
+zend_class_entry *puremvc_view_iface_entry;
+/* core - classes */
+zend_class_entry *puremvc_controller_ce;
+zend_class_entry *puremvc_model_ce;
+zend_class_entry *puremvc_view_ce;
+/* pattern - classes */
+zend_class_entry *puremvc_notification_ce;
+zend_class_entry *puremvc_notifier_ce;
+zend_class_entry *puremvc_observer_ce;
+zend_class_entry *puremvc_facade_ce;
+zend_class_entry *puremvc_mediator_ce;
+zend_class_entry *puremvc_macrocommand_ce;
+zend_class_entry *puremvc_simplecommand_ce;
+zend_class_entry *puremvc_proxy_ce;
+
+
 /* True global resources - no need for thread safety here */
 static int le_pure_mvc;
 /* Controller */
@@ -106,50 +132,51 @@ PHP_METHOD(View, removeMediator)
 {
 }
 /* MacroCommand */
+/* {{{ proto protected void MacroCommand::initializeMacroCommand
+   this is a hook method to be overriden by subclasses, which will be called by the constructor */
+PHP_METHOD(MacroCommand, initializeMacroCommand)
+{
+	php_error_docref(NULL TSRMLS_CC, E_NOTICE,
+	"initializeMacroCommand", NULL);
+}
+/* }}} */
 /* {{{ proto public void MacroCommand::__construct()
    Constructor. */
 PHP_METHOD(MacroCommand, __construct)
 {
-	zval *object;
-	zval method;
-	zval retval;
-	zend_class_entry *this_ce;
+	zval *this;
 
-	ZVAL_STRING(&method, "initializeMacroCommand", 0);
-	object = getThis();
-	this_ce = zend_get_class_entry(object);
+	this = getThis();
 	array_init(return_value);
-	
-	zend_update_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
+
+	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
 			return_value TSRMLS_CC);
-	call_user_function(EG(active_symbol_table), &object, &method, &retval, 0,
-			(zval**)NULL TSRMLS_CC);
-}
-/* }}} */
-/* {{{ proto public void MacroCommand::initializeMacroCommand
-   this is a hook method to be overriden by subclasses, which will be called by the constructor */
-PHP_METHOD(MacroCommand, initializeMacroCommand)
-{
+
+	zend_call_method_with_0_params(&this, puremvc_macrocommand_ce, NULL, "initializemacrocommand",
+			NULL);
 }
 /* }}} */
 /* {{{ proto public void MacroCommand::addSubCommand commandClassRef
    add a subcommand to this MacroCommand */
 PHP_METHOD(MacroCommand, addSubCommand)
 {
-	zval *object;
-	zval *subCommand;
-	zval *subCommands;
-	zend_class_entry *this_ce;
+	zval *this, *subCommand, *subCommands;
+
+	php_error_docref(NULL TSRMLS_CC, E_NOTICE,
+	"addSubCommand", NULL);
 
 	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&subCommand) == FAILURE) {
 		RETURN_NULL();
 	}
-	object = getThis();
-	this_ce = zend_get_class_entry(object);
-	subCommands = zend_read_property(this_ce, object, "subCommands", sizeof("subCommands")-1,
-					1 TSRMLS_CC);
+
+	this = getThis();
+	subCommands = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
+					sizeof("subCommands")-1, 1 TSRMLS_CC);
 	add_next_index_zval(subCommands, subCommand);
+	
+	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
+			subCommands TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public final void MacroCommand::execute
@@ -1122,30 +1149,6 @@ static void php_pure_mvc_init_globals(zend_pure_mvc_globals *pure_mvc_globals)
 */
 /* }}} */
 
-/* interfaces */
-zend_class_entry *puremvc_command_iface_entry;
-zend_class_entry *puremvc_controller_iface_entry;
-zend_class_entry *puremvc_facade_iface_entry;
-zend_class_entry *puremvc_mediator_iface_entry;
-zend_class_entry *puremvc_model_iface_entry;
-zend_class_entry *puremvc_notification_iface_entry;
-zend_class_entry *puremvc_notifier_iface_entry;
-zend_class_entry *puremvc_observer_iface_entry;
-zend_class_entry *puremvc_proxy_iface_entry;
-zend_class_entry *puremvc_view_iface_entry;
-/* core - classes */
-zend_class_entry *puremvc_controller_ce;
-zend_class_entry *puremvc_model_ce;
-zend_class_entry *puremvc_view_ce;
-/* pattern - classes */
-zend_class_entry *puremvc_notification_ce;
-zend_class_entry *puremvc_notifier_ce;
-zend_class_entry *puremvc_observer_ce;
-zend_class_entry *puremvc_facade_ce;
-zend_class_entry *puremvc_mediator_ce;
-zend_class_entry *puremvc_macrocommand_ce;
-zend_class_entry *puremvc_simplecommand_ce;
-zend_class_entry *puremvc_proxy_ce;
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(pure_mvc)
@@ -1153,117 +1156,137 @@ PHP_MINIT_FUNCTION(pure_mvc)
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
-	zend_class_entry ce;
+	zend_class_entry icommand_ce;
 	/* interfaces */
-	INIT_CLASS_ENTRY(ce, "ICommand", puremvc_command_iface_methods);
-	puremvc_command_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	INIT_CLASS_ENTRY(icommand_ce, "ICommand", puremvc_command_iface_methods);
+	puremvc_command_iface_entry = zend_register_internal_class(&icommand_ce TSRMLS_CC);
 	puremvc_command_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IController", puremvc_controller_iface_methods);
-	puremvc_controller_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry icontroller_ce;
+	INIT_CLASS_ENTRY(icontroller_ce, "IController", puremvc_controller_iface_methods);
+	puremvc_controller_iface_entry = zend_register_internal_class(&icontroller_ce TSRMLS_CC);
 	puremvc_controller_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IFacade", puremvc_facade_iface_methods);
-	puremvc_facade_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry ifacade_ce;
+	INIT_CLASS_ENTRY(ifacade_ce, "IFacade", puremvc_facade_iface_methods);
+	puremvc_facade_iface_entry = zend_register_internal_class(&ifacade_ce TSRMLS_CC);
 	puremvc_facade_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IMediator", puremvc_mediator_iface_methods);
-	puremvc_mediator_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry imediator_ce;
+	INIT_CLASS_ENTRY(imediator_ce, "IMediator", puremvc_mediator_iface_methods);
+	puremvc_mediator_iface_entry = zend_register_internal_class(&imediator_ce TSRMLS_CC);
 	puremvc_mediator_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IModel", puremvc_model_iface_methods);
-	puremvc_model_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry imodel_ce;
+	INIT_CLASS_ENTRY(imodel_ce, "IModel", puremvc_model_iface_methods);
+	puremvc_model_iface_entry = zend_register_internal_class(&imodel_ce TSRMLS_CC);
 	puremvc_model_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "INotification", puremvc_notification_iface_methods);
-	puremvc_notification_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry inotification_ce;
+	INIT_CLASS_ENTRY(inotification_ce, "INotification", puremvc_notification_iface_methods);
+	puremvc_notification_iface_entry = zend_register_internal_class(&inotification_ce TSRMLS_CC);
 	puremvc_notification_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "INotifier", puremvc_notifier_iface_methods);
-	puremvc_notifier_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry inotifier_ce;
+	INIT_CLASS_ENTRY(inotifier_ce, "INotifier", puremvc_notifier_iface_methods);
+	puremvc_notifier_iface_entry = zend_register_internal_class(&inotifier_ce TSRMLS_CC);
 	puremvc_notifier_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IObserver", puremvc_observer_iface_methods);
-	puremvc_observer_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry iobserver_ce;
+	INIT_CLASS_ENTRY(iobserver_ce, "IObserver", puremvc_observer_iface_methods);
+	puremvc_observer_iface_entry = zend_register_internal_class(&iobserver_ce TSRMLS_CC);
 	puremvc_observer_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IProxy", puremvc_proxy_iface_methods);
-	puremvc_proxy_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry iproxy_ce;
+	INIT_CLASS_ENTRY(iproxy_ce, "IProxy", puremvc_proxy_iface_methods);
+	puremvc_proxy_iface_entry = zend_register_internal_class(&iproxy_ce TSRMLS_CC);
 	puremvc_proxy_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
-	INIT_CLASS_ENTRY(ce, "IView", puremvc_view_iface_methods);
-	puremvc_view_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry iview_ce;
+	INIT_CLASS_ENTRY(iview_ce, "IView", puremvc_view_iface_methods);
+	puremvc_view_iface_entry = zend_register_internal_class(&iview_ce TSRMLS_CC);
 	puremvc_view_iface_entry->ce_flags|= ZEND_ACC_INTERFACE;
 
 	/* core classes */
-	INIT_CLASS_ENTRY(ce, "Controller", puremvc_controller_class_methods);
-	puremvc_controller_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry controller_ce;
+	INIT_CLASS_ENTRY(controller_ce, "Controller", puremvc_controller_class_methods);
+	puremvc_controller_ce = zend_register_internal_class(&controller_ce TSRMLS_CC);
 	//puremvc_controller_ce->create_object = puremvc_controller_object_new;
 	zend_class_implements(puremvc_controller_ce TSRMLS_CC,
 				1, puremvc_controller_iface_entry);
 	puremvc_controller_addprops(puremvc_controller_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Model", puremvc_model_class_methods);
-	puremvc_model_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry model_ce;
+	INIT_CLASS_ENTRY(model_ce, "Model", puremvc_model_class_methods);
+	puremvc_model_ce = zend_register_internal_class(&model_ce TSRMLS_CC);
 	zend_class_implements(puremvc_model_ce TSRMLS_CC,
 				1, puremvc_model_iface_entry);
 	puremvc_model_addprops(puremvc_model_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "View", puremvc_view_class_methods);
-	puremvc_view_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry view_ce;
+	INIT_CLASS_ENTRY(view_ce, "View", puremvc_view_class_methods);
+	puremvc_view_ce = zend_register_internal_class(&view_ce TSRMLS_CC);
 	zend_class_implements(puremvc_view_ce TSRMLS_CC,
 				1, puremvc_view_iface_entry);
 	puremvc_view_addprops(puremvc_view_ce TSRMLS_CC);
 
 	/* pattern classes */
-	INIT_CLASS_ENTRY(ce, "Notification", puremvc_notification_class_methods);
-	puremvc_notification_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry notification_ce;
+	INIT_CLASS_ENTRY(notification_ce, "Notification", puremvc_notification_class_methods);
+	puremvc_notification_ce = zend_register_internal_class(&notification_ce TSRMLS_CC);
 	zend_class_implements(puremvc_notification_ce TSRMLS_CC,
 				1, puremvc_notification_iface_entry);
 	puremvc_notification_addprops(puremvc_notification_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Notifier", puremvc_notifier_class_methods);
-	puremvc_notifier_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry notifier_ce;
+	INIT_CLASS_ENTRY(notifier_ce, "Notifier", puremvc_notifier_class_methods);
+	puremvc_notifier_ce = zend_register_internal_class(&notifier_ce TSRMLS_CC);
 	zend_class_implements(puremvc_notifier_ce TSRMLS_CC,
 				1, puremvc_notifier_iface_entry);
 	puremvc_notifier_addprops(puremvc_notifier_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Observer", puremvc_observer_class_methods);
-	puremvc_observer_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry observer_ce;
+	INIT_CLASS_ENTRY(observer_ce, "Observer", puremvc_observer_class_methods);
+	puremvc_observer_ce = zend_register_internal_class(&observer_ce TSRMLS_CC);
 	zend_class_implements(puremvc_observer_ce TSRMLS_CC,
 				1, puremvc_observer_iface_entry);
 	puremvc_observer_addprops(puremvc_observer_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Facade", puremvc_facade_class_methods);
-	puremvc_facade_ce = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_entry facade_ce;
+	INIT_CLASS_ENTRY(facade_ce, "Facade", puremvc_facade_class_methods);
+	puremvc_facade_ce = zend_register_internal_class(&facade_ce TSRMLS_CC);
 	zend_class_implements(puremvc_facade_ce TSRMLS_CC,
 				1, puremvc_facade_iface_entry);
 	puremvc_facade_addprops(puremvc_facade_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "MacroCommand", puremvc_macrocommand_class_methods);
-	puremvc_macrocommand_ce = zend_register_internal_class_ex(&ce, 
+	zend_class_entry macrocommand_ce;
+	INIT_CLASS_ENTRY(macrocommand_ce, "MacroCommand", puremvc_macrocommand_class_methods);
+	puremvc_macrocommand_ce = zend_register_internal_class_ex(&macrocommand_ce, 
 				puremvc_notifier_ce, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_macrocommand_ce TSRMLS_CC,
 				1, puremvc_command_iface_entry);
 	puremvc_macrocommand_addprops(puremvc_macrocommand_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "SimpleCommand", puremvc_simplecommand_class_methods);
-	puremvc_simplecommand_ce = zend_register_internal_class_ex(&ce, 
+	zend_class_entry simplecommand_ce;
+	INIT_CLASS_ENTRY(simplecommand_ce, "SimpleCommand", puremvc_simplecommand_class_methods);
+	puremvc_simplecommand_ce = zend_register_internal_class_ex(&simplecommand_ce, 
 				puremvc_notifier_ce, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_simplecommand_ce TSRMLS_CC,
 				1, puremvc_command_iface_entry);
 	puremvc_simplecommand_addprops(puremvc_simplecommand_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Mediator", puremvc_mediator_class_methods);
-	puremvc_mediator_ce = zend_register_internal_class_ex(&ce,
+	zend_class_entry mediator_ce;
+	INIT_CLASS_ENTRY(mediator_ce, "Mediator", puremvc_mediator_class_methods);
+	puremvc_mediator_ce = zend_register_internal_class_ex(&mediator_ce,
 				puremvc_notifier_ce, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_mediator_ce TSRMLS_CC,
 				1, puremvc_mediator_iface_entry);
 	puremvc_mediator_addconstants(puremvc_mediator_ce);
 	puremvc_mediator_addprops(puremvc_mediator_ce TSRMLS_CC);
 
-	INIT_CLASS_ENTRY(ce, "Proxy", puremvc_proxy_class_methods);
-	puremvc_proxy_ce = zend_register_internal_class_ex(&ce,
+	zend_class_entry proxy_ce;
+	INIT_CLASS_ENTRY(proxy_ce, "Proxy", puremvc_proxy_class_methods);
+	puremvc_proxy_ce = zend_register_internal_class_ex(&proxy_ce,
 				puremvc_notifier_ce, NULL TSRMLS_CC);
 	zend_class_implements(puremvc_proxy_ce TSRMLS_CC,
 				1, puremvc_proxy_iface_entry);
