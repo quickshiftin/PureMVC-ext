@@ -21,6 +21,8 @@
 #ifndef PHP_PURE_MVC_H
 #define PHP_PURE_MVC_H
 
+#define PUREMVC_SHOULD_LOG_FUNC_IO 0
+
 extern zend_module_entry pure_mvc_module_entry;
 #define phpext_pure_mvc_ptr &pure_mvc_module_entry
 
@@ -33,7 +35,8 @@ extern zend_module_entry pure_mvc_module_entry;
 #ifdef ZTS
 #include "TSRM.h"
 #endif
-#include "ext/standard/php_string.h"
+
+#include "zend_interfaces.h"
 
 PHP_MINIT_FUNCTION(pure_mvc);
 PHP_MSHUTDOWN_FUNCTION(pure_mvc);
@@ -70,6 +73,7 @@ ZEND_END_MODULE_GLOBALS(pure_mvc)
 #endif
 
 #endif	/* PHP_PURE_MVC_H */
+
 
 /*
  * Local variables:

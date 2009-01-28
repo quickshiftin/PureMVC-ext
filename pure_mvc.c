@@ -68,6 +68,23 @@ PHP_METHOD(Controller, initializeController)
 }
 PHP_METHOD(Controller, getInstance)
 {
+	zval *this;
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Controller::getInstance");
+*/
+	this = getThis();
+	return_value = zend_read_property(zend_get_class_entry(this), this, "instance",
+					sizeof("instance")-1, 1 TSRMLS_CC);
+	if(return_value != IS_NULL)
+		return;
+
+	zend_update_property(puremvc_controller_ce, this, "instance", sizeof("instance")-1,
+			NULL TSRMLS_CC);
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Controller::getInstance");
+*/
 }
 PHP_METHOD(Controller, executeCommand)
 {
@@ -90,6 +107,23 @@ PHP_METHOD(Model, initializeModel)
 }
 PHP_METHOD(Model, getInstance)
 {
+	zval *this;
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Model::getInstance");
+*/
+	this = getThis();
+	return_value = zend_read_property(zend_get_class_entry(this), this, "instance",
+					sizeof("instance")-1, 1 TSRMLS_CC);
+	if(return_value != IS_NULL)
+		return;
+
+	zend_update_property(puremvc_model_ce, this, "instance", sizeof("instance")-1,
+			NULL TSRMLS_CC);
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Model::getInstance");
+*/
 }
 PHP_METHOD(Model, registerProxy)
 {
@@ -112,6 +146,24 @@ PHP_METHOD(View, initializeView)
 }
 PHP_METHOD(View, getInstance)
 {
+	zval *this;
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> View::getInstance");
+*/
+
+	this = getThis();
+	return_value = zend_read_property(zend_get_class_entry(this), this, "instance",
+					sizeof("instance")-1, 1 TSRMLS_CC);
+	if(return_value != IS_NULL)
+		return;
+
+	zend_update_property(puremvc_view_ce, this, "instance", sizeof("instance")-1,
+			NULL TSRMLS_CC);
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< View::getInstance");
+*/
 }
 PHP_METHOD(View, registerObserver)
 {
@@ -281,17 +333,28 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 	return ZEND_HASH_APPLY_REMOVE;
 }
 
+void puremvc_log_func_io(char *classname, char *methodname, int isStart)
+{
+	if(PUREMVC_SHOULD_LOG_FUNC_IO)
+		if(isStart)
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				">>> %s::%s", classname, methodname);
+		else
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"<<< %s::%s", classname, methodname);
+}
+
 /* SimpleCommand */
 /* {{{ proto public final void SimpleCommand::__construct
     */ 
 PHP_METHOD(SimpleCommand, __construct)
 {
-	zval *facade, *this;
-	this = getThis();
-	facade = zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "getinstance",
-			NULL);
+	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL, "getinstance",
+			&return_value);
+/*
 	zend_update_property(puremvc_macrocommand_ce, this, "facade", sizeof("facade")-1,
 			return_value TSRMLS_CC);
+*/
 }
 /* }}} */
 /* {{{ proto public final void SimpleCommand::execute
@@ -305,12 +368,20 @@ PHP_METHOD(SimpleCommand, execute)
     */ 
 PHP_METHOD(Facade, __construct)
 {
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Facade::__construct");
+*/
 	zval *this;
 
 	this = getThis();
 
-	zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "initializefacade",
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL, "initializefacade",
 			NULL);
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Facade::__construct");
+*/
 }
 /* }}} */
 /* {{{ proto public final void Facade::initializeFacade
@@ -322,21 +393,34 @@ PHP_METHOD(Facade, initializeFacade)
 
 	this = getThis();
 
+	puremvc_log_func_io("Facade", "iniitializeFacade", 1);
+
 	zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "initializemodel",
 			NULL);
 	zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "initializecontroller",
 			NULL);
 	zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "initializeview",
 			NULL);
+
+	puremvc_log_func_io("Facade", "iniitializeFacade", 1);
 }
 /* }}} */
-/* {{{ proto public final object Facade::getInstance
+/* {{{ proto public static object Facade::getInstance
 	get the Facade instance and store a handle to it
     */ 
 PHP_METHOD(Facade, getInstance)
 {
-	zval *this, *controller;
-	
+	zval *this, *controller, *tmpcpy;
+
+//	puremvc_log_func_io("Facade", "getInstance", 1);
+
+	this = getThis();
+	object_init_ex(controller, puremvc_facade_ce);
+
+	zend_call_method_with_0_params(&this, puremvc_facade_ce, &puremvc_facade_ce->constructor,
+			"__construct", &return_value);
+
+/*
 	controller = zend_read_property(puremvc_macrocommand_ce, this, "facade",
 					sizeof("facade")-1, 1 TSRMLS_CC);
 
@@ -349,28 +433,39 @@ PHP_METHOD(Facade, getInstance)
 	zend_update_property(puremvc_facade_ce, this, "facade", sizeof("facade")-1,
 			return_value TSRMLS_CC);
 
-	return return_value;
+*/
+//	puremvc_log_func_io("Facade", "getInstance", 1);
+	return;
 }
 /* }}} */
-/* {{{ proto public final void Facade::initializeController
+/* {{{ proto public void Facade::initializeController
 	get the Controller instance and store a handle to it
     */ 
 PHP_METHOD(Facade, initializeController)
 {
 	zval *controller, *this;
 	
-	controller = zend_read_property(puremvc_macrocommand_ce, this, "controller",
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Facade::initializeController");
+*/
+	this = getThis();
+	controller = zend_read_property(zend_get_class_entry(this), this, "controller",
 					sizeof("controller")-1, 1 TSRMLS_CC);
 
-	if(controller == IS_NULL)
+	if(controller != IS_NULL)
 		return;
 
 	this = getThis();
-	controller = zend_call_method_with_0_params(&this, puremvc_controller_ce, NULL, "getinstance",
-				NULL);
+	zend_call_method_with_0_params(&this, puremvc_controller_ce, NULL, "getinstance",
+				&controller);
 	zend_update_property(puremvc_facade_ce, this, "controller", sizeof("controller")-1,
 			NULL TSRMLS_CC);
 
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Facade::initializeController");
+*/
 }
 /* }}} */
 /* {{{ proto public final void Facade::initializeModel
@@ -380,17 +475,29 @@ PHP_METHOD(Facade, initializeModel)
 {
 	zval *model, *this;
 	
-	model = zend_read_property(puremvc_macrocommand_ce, this, "model",
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Facade::initializeModel");
+*/
+
+	this = getThis();
+	//return_value = zend_read_property(&puremvc_macrocommand_ce, this, "model",
+	return_value = zend_read_property(zend_get_class_entry(this), this, "model",
 					sizeof("model")-1, 1 TSRMLS_CC);
 
-	if(model == IS_NULL)
+	if(return_value != IS_NULL)
 		return;
 
 	this = getThis();
-	model = zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "getinstance",
+	model = zend_call_method_with_0_params(&this, puremvc_model_ce, NULL, "getinstance",
 				NULL);
 	zend_update_property(puremvc_facade_ce, this, "model", sizeof("model")-1,
 			NULL TSRMLS_CC);
+
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Facade::initializeModel");
+*/
 
 }
 /* }}} */
@@ -401,18 +508,28 @@ PHP_METHOD(Facade, initializeView)
 {
 	zval *view, *this;
 	
-	view = zend_read_property(puremvc_macrocommand_ce, this, "view",
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		"<<< Facade::initializeView");
+*/
+
+	this = getThis();
+	view = zend_read_property(zend_get_class_entry(this), this, "view",
 					sizeof("view")-1, 1 TSRMLS_CC);
 
-	if(view == IS_NULL)
+	if(view != IS_NULL)
 		return;
 
 	this = getThis();
-	view = zend_call_method_with_0_params(&this, puremvc_facade_ce, NULL, "getinstance",
-				NULL);
+	zend_call_method_with_0_params(&this, puremvc_view_ce, NULL, "getinstance",
+				&view);
 	zend_update_property(puremvc_facade_ce, this, "view", sizeof("view")-1,
 			NULL TSRMLS_CC);
 
+/*
+	php_error_docref(NULL TSRMLS_CC, E_WARNING,
+		">>> Facade::initializeView");
+*/
 }
 /* }}} */
 /* {{{ proto public final void Facade::notifyObservers(INotification notification)
@@ -427,7 +544,6 @@ PHP_METHOD(Facade, notifyObservers)
 	}
 
 	this = getThis();
-
 	view = zend_read_property(puremvc_macrocommand_ce, this, "view",
 					sizeof("view")-1, 1 TSRMLS_CC);
 
@@ -545,7 +661,7 @@ PHP_METHOD(Facade, retrieveProxy)
 	if(model == IS_NULL)
 		return;
 
-	return zend_call_method_with_1_params(&model, puremvc_model_ce, NULL, "retrieveproxy",
+	return_value =  zend_call_method_with_1_params(&model, puremvc_model_ce, NULL, "retrieveproxy",
 			NULL, proxyName);
 }
 /* }}} */
@@ -569,10 +685,8 @@ PHP_METHOD(Facade, hasProxy)
 	if(model == IS_NULL)
 		return;
 
-		zend_call_method_with_1_param(&model, puremvc_model_ce, NULL, "hasproxy",
-			return_value, proxyName);
-
-		return return_value;
+	zend_call_method_with_1_param(&model, puremvc_model_ce, NULL, "hasproxy",
+		&return_value, proxyName);
 }
 /* }}} */
 /* {{{ proto public final mixed Facade::removeProxy(string proxyName)
@@ -665,7 +779,7 @@ PHP_METHOD(Facade, hasMediator)
 	if(view == IS_NULL)
 		return;
 
-	return zend_call_method_with_1_param(&view, puremvc_view_ce, NULL, "hasmediator",
+	return_value = zend_call_method_with_1_param(&view, puremvc_view_ce, NULL, "hasmediator",
 			NULL, mediatorName);
 }
 /* }}} */
