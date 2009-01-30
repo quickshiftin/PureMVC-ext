@@ -38,6 +38,26 @@ extern zend_module_entry pure_mvc_module_entry;
 
 #include "zend_interfaces.h"
 
+/* return object(values) */
+/* jacked from http ext.. */
+#define RETVAL_OBJECT(o, addref) \
+    RETVAL_OBJVAL((o)->value.obj, addref)
+#define RETURN_OBJECT(o, addref) \
+    RETVAL_OBJECT(o, addref); \
+    return
+#define RETVAL_OBJVAL(ov, addref) \
+    ZVAL_OBJVAL(return_value, ov, addref)
+#define RETURN_OBJVAL(ov, addref) \
+    RETVAL_OBJVAL(ov, addref); \
+    return
+#define ZVAL_OBJVAL(zv, ov, addref) \
+    (zv)->type = IS_OBJECT; \
+    (zv)->value.obj = (ov);\
+    if (addref && Z_OBJ_HT_P(zv)->add_ref) { \
+        Z_OBJ_HT_P(zv)->add_ref((zv) TSRMLS_CC); \
+    }
+
+
 PHP_MINIT_FUNCTION(pure_mvc);
 PHP_MSHUTDOWN_FUNCTION(pure_mvc);
 PHP_RINIT_FUNCTION(pure_mvc);
