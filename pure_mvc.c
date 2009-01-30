@@ -164,10 +164,12 @@ PHP_METHOD(Controller, getInstance)
 		object_init_ex(return_value, puremvc_controller_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_controller_ce, NULL,
 				"__construct", NULL);
+		ZVAL_ADDREF(return_value);
 		zend_update_static_property(puremvc_controller_ce, "instance", sizeof("instance")-1,
 				return_value TSRMLS_CC);
-	} else
-		return_value = instance;
+	} else {
+		RETVAL_OBJECT(instance, 1);
+	}
 
 	puremvc_log_func_io("Controller", "getInstance", 0);
 	return;
@@ -206,10 +208,12 @@ PHP_METHOD(Model, getInstance)
 		object_init_ex(return_value, puremvc_model_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_model_ce, NULL,
 				"__construct", NULL);
+		ZVAL_ADDREF(return_value);
 		zend_update_static_property(puremvc_model_ce, "instance", sizeof("instance")-1,
 				return_value TSRMLS_CC);
-	} else
-		return_value = instance;
+	} else {
+		RETVAL_OBJECT(instance, 1);
+	}
 
 	puremvc_log_func_io("Model", "getInstance", 0);
 	return;
@@ -242,7 +246,7 @@ PHP_METHOD(View, getInstance)
 	puremvc_log_func_io("View", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_view_ce, "instance",
-					sizeof("instance")-1, 1 TSRMLS_CC);
+				sizeof("instance")-1, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_view_ce);
@@ -250,8 +254,9 @@ PHP_METHOD(View, getInstance)
 				"__construct", NULL);
 		zend_update_static_property(puremvc_view_ce, "instance", sizeof("instance")-1,
 				return_value TSRMLS_CC);
-	} else
-		return_value = instance;
+	} else {
+		RETVAL_OBJECT(instance, 1);
+	}
 	
 	puremvc_log_func_io("View", "getInstance", 0);
 	return;
@@ -279,14 +284,15 @@ PHP_METHOD(View, removeMediator)
    this is a hook method to be overriden by subclasses, which will be called by the constructor */
 PHP_METHOD(MacroCommand, initializeMacroCommand)
 {
-	php_error_docref(NULL TSRMLS_CC, E_NOTICE,
-	"initializeMacroCommand", NULL);
+	puremvc_log_func_io("MacroCommand", "initializeMacroCommand", 1);
+	puremvc_log_func_io("MacroCommand", "initializeMacroCommand", 0);
 }
 /* }}} */
 /* {{{ proto public void MacroCommand::__construct()
    Constructor. */
 PHP_METHOD(MacroCommand, __construct)
 {
+	puremvc_log_func_io("MacroCommand", "__construct", 1);
 	zval *this;
 
 	this = getThis();
@@ -295,18 +301,22 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
 			return_value TSRMLS_CC);
 
-	zend_call_method_with_0_params(&this, puremvc_macrocommand_ce, NULL, "initializemacrocommand",
-			NULL);
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
+			"initializemacrocommand", NULL);
+
+	zend_call_method_with_0_params(&this, puremvc_macrocommand_ce->parent, NULL,
+			"__construct", NULL);
+
+	puremvc_log_func_io("MacroCommand", "__construct", 0);
 }
 /* }}} */
 /* {{{ proto public void MacroCommand::addSubCommand(object commandClassRef)
    add a subcommand to this MacroCommand */
 PHP_METHOD(MacroCommand, addSubCommand)
 {
-	zval *this, *subCommand, *subCommands;
+	puremvc_log_func_io("MacroCommand", "addSubCommand", 1);
 
-	php_error_docref(NULL TSRMLS_CC, E_NOTICE,
-	"addSubCommand", NULL);
+	zval *this, *subCommand, *subCommands;
 
 	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&subCommand) == FAILURE) {
@@ -314,12 +324,17 @@ PHP_METHOD(MacroCommand, addSubCommand)
 	}
 
 	this = getThis();
+	zend_class_entry *this_ce = zend_get_class_entry(this);
 	subCommands = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
 					sizeof("subCommands")-1, 1 TSRMLS_CC);
+
+	ZVAL_ADDREF(subCommand);
 	add_next_index_zval(subCommands, subCommand);
-	
+
 	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
 			subCommands TSRMLS_CC);
+
+	puremvc_log_func_io("MacroCommand", "addSubCommand", 0);
 }
 /* }}} */
 /* {{{ proto public final void MacroCommand::execute
@@ -351,9 +366,6 @@ PHP_METHOD(MacroCommand, execute)
 	}
 }
 /* }}} */
-
-
-
 /* SimpleCommand */
 /* {{{ proto public final void SimpleCommand::__construct
     */ 
@@ -425,17 +437,20 @@ PHP_METHOD(Facade, getInstance)
 	puremvc_log_func_io("Facade", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_facade_ce, "instance",
-					sizeof("instance")-1, 1 TSRMLS_CC);
+					sizeof("instance")-1, 0 TSRMLS_CC);
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_facade_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_facade_ce, NULL,
 				"__construct", NULL);
+		ZVAL_ADDREF(return_value);
 		zend_update_static_property(puremvc_facade_ce, "instance", sizeof("instance")-1,
 				return_value TSRMLS_CC);
-	} else
-		return_value = instance;
+	} else {
+		RETVAL_OBJECT(instance, 1);
+	}
 
 	puremvc_log_func_io("Facade", "getInstance", 0);
+
 	return;
 }
 /* }}} */
@@ -455,7 +470,6 @@ PHP_METHOD(Facade, initializeController)
 		puremvc_log_func_io("Facade", "initializeController", 0);
 		return;
 	}
-php_error_docref(NULL TSRMLS_CC, E_WARNING, "try to call constructor");
 
 	this = getThis();
 	zend_call_method_with_0_params(&this, puremvc_controller_ce, NULL, "getinstance",
@@ -888,9 +902,21 @@ PHP_METHOD(Notification, toString)
 {
 }
 /* Notifier */
+/* {{{ proto public final void Facade::__construct
+	Notifier constructor, calls Facade::getInstance
+    */ 
 PHP_METHOD(Notifier, __construct)
 {
+	puremvc_log_func_io("SimpleCommand", "__construct", 1);
+
+	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
+			"getinstance", &return_value);
+	zend_update_property(puremvc_notifier_ce, getThis(), "facade", sizeof("facade")-1,
+			return_value);
+
+	puremvc_log_func_io("SimpleCommand", "__construct", 0);
 }
+/* }}} */
 PHP_METHOD(Notifier, sendNotification)
 {
 }
