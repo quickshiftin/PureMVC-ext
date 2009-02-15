@@ -1,11 +1,18 @@
 --TEST--
-MacroCommand::execute(), ensure all commands are popped off the internal queue after execute() has completed
+MacroCommand::execute(), ensure calls to each commands execute methods are invokded
 --SKIPIF--
 <?php if (!extension_loaded("pure_mvc")) print "skip"; ?>
 --FILE--
 <?php 
 class SubCommand {
-	public function execute() {}
+	static $id = 0;
+
+	public function __construct() {
+		self::$id++;
+	}
+	public function execute() {
+		echo self::$id . PHP_EOL;
+	}
 }
 class MyNotification implements INotification {
 	public function getName() {}
@@ -16,19 +23,15 @@ class MyNotification implements INotification {
 	public function setType($type) {}
 	public function toString() {}
 }
-$subCmd1 = new SubCommand();
-$subCmd2 = new SubCommand();
-$macroCmd = new MacroCommand();
-$macroCmd->addSubCommand($subCmd1);
-$macroCmd->addSubCommand($subCmd2);
+class MyMacroCommand extends MacroCommand {
+	protected function initializeMacroCommand() {
+		$this->addSubCommand('SubCommand');
+		$this->addSubCommand('SubCommand');
+	}
+}
+$macroCmd = new MyMacroCommand();
 $macroCmd->execute(new MyNotification());
-var_dump($macroCmd);
 ?>
 --EXPECT--
-object(MacroCommand)#1 (2) {
-  ["facade:protected"]=>
-  string(0) ""
-  ["subCommands:private"]=>
-  array(0) {
-  }
-}
+1
+2
