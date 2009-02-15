@@ -27,6 +27,18 @@
 #include "ext/standard/info.h"
 #include "php_pure_mvc.h"
 
+/* @param char *classname class name of method
+ * @param char *methodname name of mehtod
+ * @param int isStart (0|1) is this the start or end of the method
+ *
+ * a simple method used to create function traces of php-level functions, in the
+ * php error log.  log entries will be in the form of
+ * >>> classname::methodname
+ * <<< classname::methodname
+ * where the former is the result of isStart = 1
+ *
+ * @note the logging can be toggled via the PUREMVC_SHOULD_LOG_FUNC_IO constant
+ */
 void puremvc_log_func_io(char *classname, char *methodname, int isStart)
 {
 	if(PUREMVC_SHOULD_LOG_FUNC_IO == 1) {
@@ -39,76 +51,59 @@ void puremvc_log_func_io(char *classname, char *methodname, int isStart)
 	}
 }
 
-/*	note: this will remove the command from the hash after executing it */
+/* @param zval **val string name of class to instantiate
+ * @param zval *notification INotification instance to pass to execute()
+ *
+ * this method is the guts of a foreach loop in MacroCommand::execute.  the
+ * loop iterates over an array of strings calling this method to instantiate
+ * the classes those strings name, and then invoke the execute() method on said
+ * instance, supplying an INotification as an argument
+ *
+ * @note: this will remove the command from the hash after executing it
+ */
 int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 {
-	zval *tmpcpy, *return_value;
-	zend_class_entry *ce;
-	zval *execute_args = {notification};
+	zval tmpcpy, *subCommandInstance, *return_value;
+	zend_class_entry **ce, *ze_p;
 
-	MAKE_STD_ZVAL(return_value);
+	//// @TODO: use SEPARATE_ZVAL HERE
+	tmpcpy  = **val;
+	zval_copy_ctor(&tmpcpy);
+	INIT_PZVAL(&tmpcpy);
+	convert_to_string(&tmpcpy);
 
-	*tmpcpy  = **val;
-	zval_copy_ctor(tmpcpy);
-	INIT_PZVAL(tmpcpy);
-	convert_to_string(tmpcpy);
-	php_strtolower(Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy));
-	if(zend_hash_find(EG(class_table),
-		Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy) + 1,
-		(void**)&ce) == FAILURE) {
-			php_error_docref(NULL TSRMLS_CC, E_NOTICE,
-			"Class %s does not exist.", Z_STRVAL_P(tmpcpy));
-			zend_dtor(tmpcpy);
-			RETURN_FALSE;
+	php_strtolower(Z_STRVAL_PP(val), Z_STRLEN_PP(val));
+
+	if(zend_lookup_class(Z_STRVAL(tmpcpy), Z_STRLEN(tmpcpy),
+		&ce TSRMLS_CC)  == FAILURE) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE,
+		"Class %s does not exist.", Z_STRVAL_PP(val));
+//		zend_dtor(&tmpcpy);
+		RETURN_FALSE;
+	} else {
+		ze_p = *ce;
 	}
 
-	object_init_ex(return_value, ce);
-	/* attempt to call constructor, if it exists */
-	if(zend_hash_exists(&ce->function_table,
+	MAKE_STD_ZVAL(subCommandInstance);
+	object_init_ex(subCommandInstance, ze_p);
+
+	// attempt to call constructor, if it exists 
+	if(zend_hash_exists(&ze_p->function_table,
 		"__construct", strlen("__construct") + 1)) {
-			zval *ctor, *dummy = NULL;
-
-			MAKE_STD_ZVAL(ctor);
-			array_init(ctor);
-			zval_add_ref(&tmpcpy);
-			add_next_index_zval(ctor, tmpcpy);
-			zval_add_ref(&tmpcpy);
-			add_next_index_string(ctor, "__construct", 1);
-			if(call_user_function(&ce->function_table,
-				&return_value, ctor, dummy,
-				0, NULL	TSRMLS_CC) == FAILURE) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-					"Unable to call constructor.");
-			}
-			if(dummy)
-				zval_ptr_dtor(&dummy);
-			zval_ptr_dtor(&ctor);
+		zend_call_method_with_0_params(&subCommandInstance, *ce, NULL,
+			"__construct", NULL);
 	}
-	zval_dtor(tmpcpy);
+	//zval_dtor(&tmpcpy);
 
-	/* attempt to call the execute() method */
-	if(zend_hash_exists(&ce->function_table,
+	// attempt to call the execute() method 
+	if(zend_hash_exists(&ze_p->function_table,
 		"execute", strlen("execute") +1)) {
-		zval *execute = NULL;
-
-		MAKE_STD_ZVAL(execute);
-		array_init(execute);
-		add_next_index_zval(execute, notification);
-		zval_add_ref(&notification);
-		add_next_index_string(execute, "execute", 1);
-		zval_add_ref(&notification);
-		if(call_user_function(&ce->function_table,
-			&return_value, execute, NULL,
-			1, &execute_args TSRMLS_CC) == FAILURE) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING,
-				"Unable to call execute.");
-		}
-		zval_ptr_dtor(&execute);
+		zend_call_method_with_1_params(&subCommandInstance, *ce, NULL,
+			"execute", NULL, notification);
 	}
-	zval_dtor(tmpcpy);
-	zval_dtor(return_value);
-
-	return ZEND_HASH_APPLY_REMOVE;
+	//zval_dtor(&tmpcpy);
+	//zval_dtor(subCommandInstance);
+	return SUCCESS;
 }
 /* If you declare any globals in php_pure_mvc.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(pure_mvc)
@@ -304,24 +299,33 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
 			"initializemacrocommand", NULL);
 
-	zend_call_method_with_0_params(&this, puremvc_macrocommand_ce->parent, NULL,
+/*  the php code doesnt have this, but its something that may merit a question
+	on the mailin list / forum
+//////
+	zend_call_method_with_0_params(&this, puremvc_notifier_ce, NULL,
 			"__construct", NULL);
+*/
 
 	puremvc_log_func_io("MacroCommand", "__construct", 0);
 }
 /* }}} */
-/* {{{ proto public void MacroCommand::addSubCommand(object commandClassRef)
+/* {{{ proto public void MacroCommand::addSubCommand(string commandClassRef)
    add a subcommand to this MacroCommand */
 PHP_METHOD(MacroCommand, addSubCommand)
 {
 	puremvc_log_func_io("MacroCommand", "addSubCommand", 1);
 
-	zval *this, *subCommand, *subCommands;
+	zval *this, *subCommands, *subCommand;
+	char *rawSubCommand;
+	int rawSubCommandLength;
 
-	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
-			&subCommand) == FAILURE) {
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawSubCommand, &rawSubCommandLength) == FAILURE) {
 		RETURN_NULL();
 	}
+
+	MAKE_STD_ZVAL(subCommand);
+	ZVAL_STRINGL(subCommand, rawSubCommand, rawSubCommandLength, 1);
 
 	this = getThis();
 	zend_class_entry *this_ce = zend_get_class_entry(this);
@@ -341,7 +345,9 @@ PHP_METHOD(MacroCommand, addSubCommand)
    run this MacroCommand (execute subCommands that have been assigned to this MacroCommand) */ 
 PHP_METHOD(MacroCommand, execute)
 {
-	zval *this, *notification, **subCommandsVal;
+	puremvc_log_func_io("MacroCommand", "execute", 1);
+
+	zval *this, *notification, *subCommandsVal;
 
 	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&notification) == FAILURE) {
@@ -351,19 +357,35 @@ PHP_METHOD(MacroCommand, execute)
 	this = getThis();
 
 	/* get the $subCommands HashTable, wraped in a zval */
-	if(zend_hash_find(Z_OBJPROP_P(this), "subCommands", sizeof("subCommands"),
-		(void**)&subCommandsVal) == FAILURE) {
-		return;		// subCommands doesnt exist..
+	subCommandsVal = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
+					sizeof("subCommands")-1, 1 TSRMLS_CC);
+
+	if(Z_TYPE_P(subCommandsVal) != IS_ARRAY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING,
+			"$this->subCommands is not an array");
+		RETURN_FALSE;
 	}
 
 	/*  iterate over the subCommands calling the execute() method on
 	 *	instances of them we make; poping them off $subCommands as we go
 	 */
-	for( zend_hash_internal_pointer_reset(Z_ARRVAL_PP(subCommandsVal));
-		 zend_hash_has_more_elements(Z_ARRVAL_PP(subCommandsVal)) == SUCCESS;
-		 zend_hash_move_forward(Z_ARRVAL_PP(subCommandsVal)) ) {
-		puremvc_execute_command_in_hash(&this, notification);
+	for( zend_hash_internal_pointer_reset(Z_ARRVAL_P(subCommandsVal));
+		 zend_hash_has_more_elements(Z_ARRVAL_P(subCommandsVal)) == SUCCESS;
+		 zend_hash_move_forward(Z_ARRVAL_P(subCommandsVal)) ) {
+			zval **ppzval;
+			ulong index;
+
+			if(zend_hash_get_current_data(Z_ARRVAL_P(subCommandsVal), (void**)&ppzval)
+				== FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+					"couldnt get current data");
+				continue;
+			}
+		puremvc_execute_command_in_hash(ppzval, notification);
 	}
+	zend_hash_clean(Z_ARRVAL_P(subCommandsVal));
+
+	puremvc_log_func_io("MacroCommand", "execute", 0);
 }
 /* }}} */
 /* SimpleCommand */
@@ -964,7 +986,9 @@ PHP_METHOD(Proxy, onRemove)
 /* ICommand */
 static
 ZEND_BEGIN_ARG_INFO(arginfo_command_execute, 0)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+	ZEND_ARG_INFO(0, notification)
 ZEND_END_ARG_INFO();
 static
 function_entry puremvc_command_iface_methods [] = {
@@ -1319,13 +1343,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_addSubCommand, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_execute, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+	ZEND_ARG_INFO(0, notification)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_macrocommand_class_methods[] = {
 	PHP_ME(MacroCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
 	PHP_ME(MacroCommand, initializeMacroCommand, NULL, ZEND_ACC_PROTECTED)
 	PHP_ME(MacroCommand, addSubCommand, arginfo_macrocommand_addSubCommand, ZEND_ACC_PROTECTED)
-	PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
+	//PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
+	PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC )
 	{ NULL, NULL, NULL }
 };
 void puremvc_macrocommand_addprops(zend_class_entry *macrocommand_ce TSRMLS_DC)
@@ -1336,7 +1363,9 @@ void puremvc_macrocommand_addprops(zend_class_entry *macrocommand_ce TSRMLS_DC)
 }
 /* SimpleCommand */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_simplecommand_execute, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+	ZEND_ARG_INFO(0, notification)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_simplecommand_class_methods[] = {
 	PHP_ME(SimpleCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
