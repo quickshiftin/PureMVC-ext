@@ -37,6 +37,7 @@ extern zend_module_entry pure_mvc_module_entry;
 #endif
 
 #include "zend_interfaces.h"
+#include "ext/standard/php_smart_str.h"
 
 /* return object(values) */
 /* jacked from http ext.. */
