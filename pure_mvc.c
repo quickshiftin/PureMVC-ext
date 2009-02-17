@@ -27,6 +27,92 @@
 #include "ext/standard/info.h"
 #include "php_pure_mvc.h"
 
+/* {{{ zend_call_method
+ Only returns the returned zval if retval_ptr != NULL */
+zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count TSRMLS_DC, ...)
+{
+	int result;
+	zend_fcall_info fci;
+	zval z_fname;
+	zval *retval;
+	HashTable *function_table;
+
+	int i;
+	va_list va_params;
+	zval ***params = emalloc(sizeof(zval**) * param_count);
+
+	va_start(va_params, param_count);
+	for (i = 0; i < param_count; i++) {
+		zval **tmp = va_arg(va_params, zval**);
+		*(params+i) = tmp;
+	}
+	va_end(va_params);
+
+	fci.size = sizeof(fci);
+	/*fci.function_table = NULL; will be read form zend_class_entry of object if needed */
+	fci.object_pp = object_pp;
+	fci.function_name = &z_fname;
+	fci.retval_ptr_ptr = retval_ptr_ptr ? retval_ptr_ptr : &retval;
+	fci.param_count = param_count;
+	fci.params = params;
+	fci.no_separation = 1;
+	fci.symbol_table = NULL;
+
+	if (!fn_proxy && !obj_ce) {
+		/* no interest in caching and no information already present that is
+		 * needed later inside zend_call_function. */
+		ZVAL_STRINGL(&z_fname, function_name, function_name_len, 0);
+		fci.function_table = !object_pp ? EG(function_table) : NULL;
+		result = zend_call_function(&fci, NULL TSRMLS_CC);
+	} else {
+		zend_fcall_info_cache fcic;
+
+		fcic.initialized = 1;
+		if (!obj_ce) {
+			obj_ce = object_pp ? Z_OBJCE_PP(object_pp) : NULL;
+		}
+		if (obj_ce) {
+			function_table = &obj_ce->function_table;
+		} else {
+			function_table = EG(function_table);
+		}
+		if (!fn_proxy || !*fn_proxy) {
+			if (zend_hash_find(function_table, function_name, function_name_len+1, (void **) &fcic.function_handler) == FAILURE) {
+				/* error at c-level */
+				zend_error(E_CORE_ERROR, "Couldn't find implementation for method %s%s%s", obj_ce ? obj_ce->name : "", obj_ce ? "::" : "", function_name);
+			}
+			if (fn_proxy) {
+				*fn_proxy = fcic.function_handler;
+			}
+		} else {
+			fcic.function_handler = *fn_proxy;
+		}
+		fcic.calling_scope = obj_ce;
+		fcic.object_pp = object_pp;
+		result = zend_call_function(&fci, &fcic TSRMLS_CC);
+	}
+	if (result == FAILURE) {
+		/* error at c-level */
+		if (!obj_ce) {
+			obj_ce = object_pp ? Z_OBJCE_PP(object_pp) : NULL;
+		}
+		if (!EG(exception)) {
+			zend_error(E_CORE_ERROR, "Couldn't execute method %s%s%s", obj_ce ? obj_ce->name : "", obj_ce ? "::" : "", function_name);
+		}
+	}
+	efree(params);
+	if (!retval_ptr_ptr) {
+		if (retval) {
+			zval_ptr_dtor(&retval);
+		}
+		return NULL;
+	}
+	return *retval_ptr_ptr;
+}
+/* }}} */
+
+
+
 /* @param char *classname class name of method
  * @param char *methodname name of mehtod
  * @param int isStart (0|1) is this the start or end of the method
@@ -860,8 +946,9 @@ PHP_METHOD(Facade, sendNotification)
 	zval *tmpcpy2, *ctor = NULL;
 	char *rawNotificationName = NULL, *rawBody = NULL, *rawType = NULL;
 	int rawNotificationNameLength, rawBodyLength, rawTypeLength, paramCount = 0;
+	int numParams = ZEND_NUM_ARGS();
 
-	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|ss",
+	if( zend_parse_parameters(numParams TSRMLS_CC, "s|ss",
 			&rawNotificationName, &rawNotificationNameLength,
 			&rawBody, &rawBodyLength, &rawType, &rawTypeLength) == FAILURE) {
 		return;
@@ -869,17 +956,21 @@ PHP_METHOD(Facade, sendNotification)
 
 	MAKE_STD_ZVAL(notificationName);
 	ZVAL_STRINGL(notificationName, rawNotificationName, rawNotificationNameLength, 1);
-	params[paramCount++] = notificationName;
-	if(rawBody != NULL) {
-		MAKE_STD_ZVAL(body);
-		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1)
-		params[paramCount++] = body;
+
+	MAKE_STD_ZVAL(body);
+	if(numParams == 2 || numParams == 3) {
+		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
+	} else {
+		ZVAL_NULL(body);
 	}
-	if(rawType != NULL) {
-		MAKE_STD_ZVAL(type);
+
+	MAKE_STD_ZVAL(type);
+	if(numParams == 3) {
 		ZVAL_STRINGL(type, rawType, rawTypeLength, 1);
-		params[paramCount++] = type;
+	} else {
+		ZVAL_NULL(type);
 	}
+
 	this = getThis();
 
 	/* instantiate a Notification */
@@ -890,18 +981,8 @@ PHP_METHOD(Facade, sendNotification)
 	MAKE_STD_ZVAL(tmpcpy);
 	ZVAL_STRING(tmpcpy, "__construct", 1);
 
-	/* instead of calling the constructor w/ 3 params [zend_call_method limitation]
-	 * call the constructor w/ 1 param, then use setters to potentially set
-	 * any remaining arguments
-	 */
-	zend_call_method_with_1_params(&notification, puremvc_notification_ce, NULL,
-		"__construct", NULL, notificationName);
-	if(rawBody != NULL)
-		zend_call_method_with_1_params(&notification, puremvc_notification_ce,
-			NULL, "setbody", NULL, body);
-	if(rawType != NULL)
-		zend_call_method_with_1_params(&notification, puremvc_notification_ce,
-			NULL, "settype", NULL, type);
+	puremvc_call_method_with_3_params(&notification, puremvc_notification_ce,
+		NULL, "__construct", NULL, notificationName, body, type);
 
 	/* notify observers, passing the above create notification */
 	zend_call_method_with_1_params(&this, zend_get_class_entry(this), NULL,
@@ -1097,9 +1178,47 @@ PHP_METHOD(Notifier, __construct)
 	puremvc_log_func_io("SimpleCommand", "__construct", 0);
 }
 /* }}} */
+/* proto public void Notifier::sendNotification(string notificationNamea [, string body [, string type ]])
+			sendin a notification via the facade */
 PHP_METHOD(Notifier, sendNotification)
 {
+	zval *this, *notificationName, *body, *type, *facade;
+	char *rawNotificationName, *rawBody, *rawType;
+	int rawNotificationNameLength, rawBodyLength, rawTypeLength;
+	int numParams = ZEND_NUM_ARGS();
+
+	if(zend_parse_parameters(numParams TSRMLS_CC, "s|ss",
+			&rawNotificationName, &rawNotificationNameLength,
+			&rawBody, &rawBodyLength, &rawType, &rawTypeLength) == FAILURE) {
+		return;
+	}
+
+	MAKE_STD_ZVAL(notificationName);
+	ZVAL_STRINGL(notificationName, rawNotificationName,
+			rawNotificationNameLength, 1);
+
+	MAKE_STD_ZVAL(body);
+	if(numParams == 2 || numParams == 3) {
+		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
+	} else {
+		ZVAL_NULL(body);
+	}
+
+	MAKE_STD_ZVAL(type);
+	if(numParams == 3) {
+		ZVAL_STRINGL(type, rawType, rawTypeLength, 1);
+	} else {
+		ZVAL_NULL(type);
+	}
+
+	this = getThis();
+	facade = zend_read_property(zend_get_class_entry(this), this,
+				"facade", sizeof("facade")-1, 1 TSRMLS_CC);
+
+	puremvc_call_method_with_3_params(&facade, zend_get_class_entry(facade),
+			NULL, "sendnotification", NULL, notificationName, body, type);
 }
+/* }}} *?
 /* Observer */
 PHP_METHOD(Observer, __construct)
 {

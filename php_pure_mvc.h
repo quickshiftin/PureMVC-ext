@@ -58,6 +58,24 @@ extern zend_module_entry pure_mvc_module_entry;
         Z_OBJ_HT_P(zv)->add_ref((zv) TSRMLS_CC); \
     }
 
+/* jacked from mailing list */
+zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count TSRMLS_DC, ...);
+
+#define puremvc_call_method_with_0_params(obj, obj_ce, fn_proxy, function_name, retval) \
+	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 0 TSRMLS_CC)
+
+#define puremvc_call_method_with_1_params(obj, obj_ce, fn_proxy, function_name, retval, arg1) \
+	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 1 TSRMLS_CC, &arg1)
+
+#define puremvc_call_method_with_2_params(obj, obj_ce, fn_proxy, function_name, retval, arg1, arg2) \
+	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 2 TSRMLS_CC, &arg1, &arg2)
+
+#define puremvc_call_method_with_3_params(obj, obj_ce, fn_proxy, function_name, retval, arg1, arg2, arg3) \
+	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 3 TSRMLS_CC, &arg1, &arg2, &arg3)
+
+#define puremvc_call_method_with_4_params(obj, obj_ce, fn_proxy, function_name, retval, arg1, arg2, arg3, arg4) \
+	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 4 TSRMLS_CC, &arg1, &arg2, &arg3, &arg4)
+
 
 PHP_MINIT_FUNCTION(pure_mvc);
 PHP_MSHUTDOWN_FUNCTION(pure_mvc);
