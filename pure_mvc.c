@@ -27,9 +27,9 @@
 #include "ext/standard/info.h"
 #include "php_pure_mvc.h"
 
-/* {{{ zend_call_method
+/* {{{ puremvc_call_method
  Only returns the returned zval if retval_ptr != NULL */
-zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count TSRMLS_DC, ...)
+zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2, zval* arg3, zval* arg4 TSRMLS_DC)
 {
 	int result;
 	zend_fcall_info fci;
@@ -37,16 +37,12 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 	zval *retval;
 	HashTable *function_table;
 
-	int i;
-	va_list va_params;
-	zval ***params = emalloc(sizeof(zval**) * param_count);
+	zval **params[4];
 
-	va_start(va_params, param_count);
-	for (i = 0; i < param_count; i++) {
-		zval **tmp = va_arg(va_params, zval**);
-		*(params+i) = tmp;
-	}
-	va_end(va_params);
+	params[0] = &arg1;
+	params[1] = &arg2;
+	params[2] = &arg3;
+	params[3] = &arg4;
 
 	fci.size = sizeof(fci);
 	/*fci.function_table = NULL; will be read form zend_class_entry of object if needed */
@@ -100,7 +96,6 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 			zend_error(E_CORE_ERROR, "Couldn't execute method %s%s%s", obj_ce ? obj_ce->name : "", obj_ce ? "::" : "", function_name);
 		}
 	}
-	efree(params);
 	if (!retval_ptr_ptr) {
 		if (retval) {
 			zval_ptr_dtor(&retval);
