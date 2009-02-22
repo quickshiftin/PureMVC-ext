@@ -2,7 +2,7 @@
 ensure Facade::sendNotification correctly creates Notification
 --FILE--
 <?php
-include(dirname(__FILE__) . '/../testlib/include.php');
+include(dirname(__FILE__) . '/../../testlib/include.php');
 $f = MyFacade::getInstance();
 $f->sendNotification('blah');
 $f->sendNotification('blah', 'testbody');

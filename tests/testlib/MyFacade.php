@@ -16,10 +16,11 @@ class MyFacade extends Facade {
 		if(self::$shouldCallParentAndEcho) {
 			parent::initializeFacade();
 			echo 'Facade' . PHP_EOL;
+		} else {
+			$this->initializeModel();
+			$this->initializeController();
+			$this->initializeView();
 		}
-		$this->initializeModel();
-		$this->initializeController();
-		$this->initializeView();
 	}
 
 	protected function initializeModel() {

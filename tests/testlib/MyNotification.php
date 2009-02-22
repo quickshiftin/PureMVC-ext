@@ -1,6 +1,8 @@
 <?php
 class MyNotification implements INotification {
-	public function getName() {}
+	public function getName() {
+		return 'testNotification';
+	}
 	public function getType() {}
 	public function getBody() {}
 	public function setName($name) {}

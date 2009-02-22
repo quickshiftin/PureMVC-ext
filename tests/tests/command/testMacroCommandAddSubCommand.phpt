@@ -4,7 +4,7 @@ MacroCommand::addSubCommand(), ensure addSubCommand actually stores the ICommand
 <?php if (!extension_loaded("pure_mvc")) print "skip"; ?>
 --FILE--
 <?php 
-include(dirname(__FILE__) . '/../testlib/include.php');
+include(dirname(__FILE__) . '/../../testlib/include.php');
 $macroCmd = new MyMacroCommand();
 var_dump($macroCmd);
 ?>

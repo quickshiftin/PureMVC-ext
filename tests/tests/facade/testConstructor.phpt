@@ -2,7 +2,7 @@
 ensure facade constructor calls $this->initializeFacade()
 --FILE--
 <?php
-include(dirname(__FILE__) . '/../testlib/include.php');
+include(dirname(__FILE__) . '/../../testlib/include.php');
 MyFacade::enableCallPAndE();
 var_dump(MyFacade::getInstance());
 ?>

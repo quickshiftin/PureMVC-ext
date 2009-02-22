@@ -4,7 +4,7 @@ MacroCommand::execute(), ensure calls to each commands execute methods are invok
 <?php if (!extension_loaded("pure_mvc")) print "skip"; ?>
 --FILE--
 <?php 
-include(dirname(__FILE__) . '/../testlib/include.php');
+include(dirname(__FILE__) . '/../../testlib/include.php');
 SubCommand::enableEcho();
 MyMacroCommand::setNumCommands(2);
 $macroCmd = new MyMacroCommand();
