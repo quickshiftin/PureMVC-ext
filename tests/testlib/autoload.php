@@ -10,5 +10,5 @@ function puremvc_phpt_autoload($classname) {
 	else
 		require_once($classpath);
 }
-spl_register_autload('puremvc_phpt_autoload');
+spl_autoload_register('puremvc_phpt_autoload');
 ?>

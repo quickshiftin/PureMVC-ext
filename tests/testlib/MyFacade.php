@@ -17,6 +17,9 @@ class MyFacade extends Facade {
 			parent::initializeFacade();
 			echo 'Facade' . PHP_EOL;
 		}
+		$this->initializeModel();
+		$this->initializeController();
+		$this->initializeView();
 	}
 
 	protected function initializeModel() {
