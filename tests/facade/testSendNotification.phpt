@@ -2,16 +2,7 @@
 ensure Facade::sendNotification correctly creates Notification
 --FILE--
 <?php
-class MyFacade extends Facade {
-	public static function getInstance() {
-		if(is_null(self::$instance))
-			self::$instance = new self();
-		return self::$instance;
-	}
-	public function notifyObservers($notification) {
-		var_dump($notification);
-	}
-}
+include(dirname(__FILE__) . '/../testlib/include.php');
 $f = MyFacade::getInstance();
 $f->sendNotification('blah');
 $f->sendNotification('blah', 'testbody');

@@ -13,7 +13,8 @@ object(SimpleCommand)#1 (1) {
     ["model:protected"]=>
     object(Model)#3 (1) {
       ["proxyMap:protected"]=>
-      NULL
+      array(0) {
+      }
     }
     ["view:protected"]=>
     object(View)#5 (2) {
