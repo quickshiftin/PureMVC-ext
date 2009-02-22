@@ -58,7 +58,7 @@ extern zend_module_entry pure_mvc_module_entry;
         Z_OBJ_HT_P(zv)->add_ref((zv) TSRMLS_CC); \
     }
 
-zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2, zval* arg3, zval* arg4 TSRMLS_DC);
+zval* puremvc_call_method_multi_param(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval **args[] TSRMLS_DC);
 
 #define puremvc_call_method_with_0_params(obj, obj_ce, fn_proxy, function_name, retval) \
 	puremvc_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 0, NULL, NULL, NULL, NULL TSRMLS_CC)

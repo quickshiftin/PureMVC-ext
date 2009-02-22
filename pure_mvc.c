@@ -27,23 +27,13 @@
 #include "ext/standard/info.h"
 #include "php_pure_mvc.h"
 
-/* {{{ puremvc_call_method
-	This is a hacked version of zend_call_method which supports up to 4 parameters for php-5.2
- Only returns the returned zval if retval_ptr != NULL */
-zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2, zval* arg3, zval* arg4 TSRMLS_DC)
+zval* puremvc_call_method_multi_param(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval **params[] TSRMLS_DC)
 {
 	int result;
 	zend_fcall_info fci;
 	zval z_fname;
 	zval *retval;
 	HashTable *function_table;
-
-	zval **params[4];
-
-	params[0] = &arg1;
-	params[1] = &arg2;
-	params[2] = &arg3;
-	params[3] = &arg4;
 
 	fci.size = sizeof(fci);
 	/*fci.function_table = NULL; will be read form zend_class_entry of object if needed */
@@ -104,6 +94,21 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 		return NULL;
 	}
 	return *retval_ptr_ptr;
+}
+
+/* {{{ puremvc_call_method
+	This is a hacked version of zend_call_method which supports up to 4 parameters for php-5.2
+ Only returns the returned zval if retval_ptr != NULL */
+zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2, zval* arg3, zval* arg4 TSRMLS_DC)
+{
+	zval **args[4];
+
+	args[0] = &arg1;
+	args[1] = &arg2;
+	args[2] = &arg3;
+	args[3] = &arg4;
+
+	return puremvc_call_method_multi_param(object_pp, obj_ce, fn_proxy, function_name, function_name_len, retval_ptr_ptr, param_count, args TSRMLS_DC);
 }
 /* }}} */
 
@@ -237,7 +242,7 @@ PHP_METHOD(Controller, initializeController)
 	this_ce = zend_get_class_entry(this);
 
 	MAKE_STD_ZVAL(view);
-	object_init_ex(view, );
+	// object_init_ex(view, );
 	
 	view = zend_call_method_with_0_params(&view, this_ce, NULL,
 				"__construct", NULL);
@@ -294,9 +299,10 @@ PHP_METHOD(Controller, executeCommand)
 		register a command for a particular notification */
 PHP_METHOD(Controller, registerCommand)
 {
-	zval *this, *this_ce, *notificationName, *commandMap;
-	zval *observer, executeCommandStr, *view;
-	char *rawNotificationName = NULL; *rawCommandClassName = NULL;
+	zval *this, *notificationName, *commandMap;
+	zval *observer, *executeCommandStr, *view;
+	zend_class_entry *this_ce;
+	char *rawNotificationName = NULL, *rawCommandClassName = NULL;
 	int rawNotificationNameLength, rawCommandClassNameLength;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
@@ -308,7 +314,7 @@ PHP_METHOD(Controller, registerCommand)
 	MAKE_STD_ZVAL(notificationName);
 	ZVAL_STRINGL(notificationName, rawNotificationName,
 			rawNotificationNameLength, 1);
-			rawCommandClassNameLength, 1);
+
 	MAKE_STD_ZVAL(executeCommandStr);
 	ZVAL_STRINGL(executeCommandStr, "executeCommand",
 			sizeof("executeCommand")-1, 1);
@@ -319,11 +325,12 @@ PHP_METHOD(Controller, registerCommand)
 	commandMap = zend_read_property(this_ce, this, "commandMap",
 					sizeof("commandMap")-1, 1 TSRMLS_CC);
 
+//// TODO ?? some sort of conditional here in case commandMap doesnt come back
 	zend_hash_update(Z_ARRVAL_P(commandMap), rawNotificationName,
 					rawNotificationNameLength, (void*)rawCommandClassName,
 					rawCommandClassNameLength, NULL);
 
-/* TODO not sure if we need this..
+/* TODO ?? not sure if we need this..
 	zend_update_property(this_ce, this, "commandMap",
 			sizeof("commandMap")-1, 1 TSRMLS_CC);
 */
@@ -360,10 +367,9 @@ PHP_METHOD(Controller, hasCommand)
 
 	if(zend_hash_exists(Z_ARRVAL_P(commandMap),
 			rawNotificationName, rawNotificationNameLength)) {
-		RETURN_TRUE();
+		RETURN_TRUE
 	} else {
-		RETURN_FALSE();
-
+		RETURN_FALSE
 	}
 }
 /* }}} */
@@ -396,14 +402,38 @@ PHP_METHOD(Controller, removeCommand)
 }
 /* }}} */
 /* Model */
+/* {{{ proto private void Model::__construct()
+		constructor */
 PHP_METHOD(Model, __construct)
 {
 	puremvc_log_func_io("Model", "__construct", 1);
+
+	zval *this, *freshArray;
+	zend_class_entry *this_ce;
+
+	MAKE_STD_ZVAL(freshArray);
+	array_init(freshArray);
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+
+	zend_update_property(this_ce, this, "proxyMap",
+			sizeof("proxyMap")-1, freshArray);
+
+	zend_call_method_with_0_params(&this, this_ce, NULL,
+			"initializemodel", NULL);
+
 	puremvc_log_func_io("Model", "__construct", 0);
 }
+/* }}} */
+/* {{{ proto protected void initializeModel
+			hook method for children, to be run by the parent during construction */
 PHP_METHOD(Model, initializeModel)
 {
 }
+/* }}} */
+/* {{{ proto static public object Model::getInstance()
+			Model singleton method */
 PHP_METHOD(Model, getInstance)
 {
 	zval *instance;
@@ -427,27 +457,134 @@ PHP_METHOD(Model, getInstance)
 	puremvc_log_func_io("Model", "getInstance", 0);
 	return;
 }
+/* }}} */
+/* {{{ proto public void Model::registerProxy(object $proxy)
+			register a proxy with the Model */
 PHP_METHOD(Model, registerProxy)
 {
+	zval *this, *proxyMap, *proxy, *proxyName;
+	zend_class_entry *this_ce, *proxy_ce;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+			proxy) == FAILURE) {
+		return;
+	}
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+	proxy_ce = zend_get_class_entry(proxy);
+
+	zend_call_method_with_0_params(&proxy, proxy_ce, NULL,
+				"getname", &proxyName);
+
+	proxyMap = zend_read_property(this_ce, this,
+				"proxyMap", sizeof("proxyMap")-1, 1 TSRMLS_CC);
+
+//// TODO i doubt this is right.. figure out how to use a zval for the value
+	//add_assoc_zval(Z_ARRVAL_P(proxyMap), Z_STRVAL_P(proxyName), proxy);
+/*
+	zend_hash_update(Z_ARRVAL_P(proxyMap), Z_STRVAL_P(proxyName),
+				Z_STRLEN_P(proxyName), (void*)proxy, sizeof(proxy), NULL);
+*/
+
+	zend_call_method_with_0_params(&proxy, proxy_ce, NULL,
+				"onregister", NULL);
 }
+/* }}} */
+/* {{{ proto public object function Model::retrieveProxy(string proxyName)
+			fetch an IProxy instance from the Model by supplying its name */
 PHP_METHOD(Model, retrieveProxy)
 {
+	zval *this, *proxyName, *proxyMap;
+	zend_class_entry *this_ce;
+	char *rawProxyName;
+	int rawProxyNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawProxyName, &rawProxyNameLength) == FAILURE) {
+		return;
+	}
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+	proxyMap = zend_read_property(this_ce, this, "proxyMap",
+					sizeof("proxyMap")-1, 1 TSRMLS_CC);
+
+//// TODO: not sure if this return_value setup is going to work
+	zend_hash_find(Z_ARRVAL_P(proxyMap),
+			rawProxyName, rawProxyNameLength, (void**)return_value);
 }
+/* }}} */
+/* {{{ proto public object Model::removeProxy(string proxyName)
+			remove a proxy from the Model by supplying its name */
 PHP_METHOD(Model, removeProxy)
 {
+	zval *this, *proxyName, *proxyMap, *proxy;
+	zend_class_entry *this_ce;
+	char *rawProxyName;
+	int rawProxyNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawProxyName, &rawProxyNameLength) == FAILURE) {
+		return;
+	}
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+	proxyMap = zend_read_property(this_ce, this, "proxyMap",
+					sizeof("proxyMap")-1, 1 TSRMLS_CC);
+
+/// TODO: will this do the vodoo we need on the return ?
+	zend_hash_find(Z_ARRVAL_P(proxyMap), rawProxyName,
+			rawProxyNameLength, (void**)return_value);
+	zend_hash_del(Z_ARRVAL_P(proxyMap), rawProxyName, rawProxyNameLength);
+
+	zend_update_property(this_ce, this, "proxyMap",
+			sizeof("proxyMap")-1, proxyMap);
 }
+/* }}} */
+/* {{{ proto public bool Model::hasProxy(string proxyName)
+			determine if the Model has a registered IProxy, by the name of proxyName */
 PHP_METHOD(Model, hasProxy)
 {
+	zval *this, *proxyMap, *proxyName;
+	char *rawProxyName;
+	int rawProxyNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawProxyName, &rawProxyNameLength) == FAILURE) {
+		return;
+	}
+
+	this = getThis();	
+	proxyMap = zend_read_property(zend_get_class_entry(this), this,
+						"proxyMap", sizeof("proxyMap")-1, 1 TSRMLS_CC);
+
+	if(zend_hash_exists(Z_ARRVAL_P(proxyMap),
+			rawProxyName, rawProxyNameLength)) {
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
 }
+/* }}} */
 /* View */
+/* {{{ proto private void View::__construct()
+		constructor */
 PHP_METHOD(View, __construct)
 {
 	puremvc_log_func_io("View", "__construct", 1);
 	puremvc_log_func_io("View", "__construct", 0);
 }
+/* }}} */
+/* {{{ proto protected void View::initializeView()
+		hook method for children, called by the constructor */
 PHP_METHOD(View, initializeView)
 {
 }
+/* }}} */
+/* {{{ proto public static object View::getInstance()
+		View singleton method */
 PHP_METHOD(View, getInstance)
 {
 	zval *instance;
@@ -470,24 +607,122 @@ PHP_METHOD(View, getInstance)
 	puremvc_log_func_io("View", "getInstance", 0);
 	return;
 }
+/* }}} */
+/* {{{ proto public void View::registerObserver(string notificationName, object $observer)
+			register an observer for a particular notificationName */
 PHP_METHOD(View, registerObserver)
 {
+	zval *this, *notificationName, *observer, *observerMap, *tmpMap;
+	zend_class_entry *this_ce;
+	char *rawNotificationName;
+	int rawNotificationNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "so",
+			&rawNotificationName, &rawNotificationNameLength,
+			&observer) == FAILURE) {
+		return;
+	}
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+
+	observerMap = zend_read_property(this_ce, this, "observerMap",
+					sizeof("observerMap")-1, 1 TSRMLS_CC);
+
+	if(!zend_hash_exists(Z_ARRVAL_P(observerMap),
+			rawNotificationName, rawNotificationNameLength)) {
+		MAKE_STD_ZVAL(tmpMap);
+		array_init(tmpMap);
+		add_assoc_zval(observerMap, "observerMap", tmpMap);
+	} else {
+		zend_hash_find(Z_ARRVAL_P(observerMap), rawNotificationName,
+			rawNotificationNameLength, (void**)&tmpMap);
+	}
+	add_assoc_zval(tmpMap, rawNotificationName, observer);
 }
+/* }}} */
+/* {{{ proto public void View::notifyObservers(object notification)
+		alert registered observers of a particualr event */
 PHP_METHOD(View, notifyObservers)
 {
+	zval *this, *notification, *observerMap, *notificationName;
+	zend_class_entry *this_ce;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+			notification) == FAILURE) {	
+		return;
+	}
+
+	observerMap = zend_read_property(this_ce, this, "observerMap",
+					sizeof("observerMap")-1, 1 TSRMLS_CC);
+
+	zend_call_method_with_0_params(&this, this_ce, NULL,
+				"getname", &notificationName); 
+
+	if(!zend_hash_exists(Z_ARRVAL_P(observerMap), Z_STRVAL_P(notificationName),
+			Z_STRLEN_P(notificationName))) {
+		return;
+	}
+
+//// TODO I HAVE A FOREACH YOU NEED TO DO
 }
+/* }}} */
+/* {{{ proto public void View::registerMediator(object mediator)
+		register an IMediator with the View */
 PHP_METHOD(View, registerMediator)
 {
+	zval *this, *mediator;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+		mediator) == FAILURE) {	
+		return;
+	}
 }
+
+/* }}} */
+/* {{{ proto public object View::retrieveMediator(string mediatorName)
+		fetch a registered IMediator by name */
 PHP_METHOD(View, retrieveMediator)
 {
+	zval *this, *mediatorName;
+	char *rawMediatorName;
+	int rawMediatorNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
+		return;
+	}
 }
+
+/* }}} */
+/* {{{ proto public bool View::hasMediator(string mediatorName)
+		determine if the IMediator with name mediatorName is registered with the View */
 PHP_METHOD(View, hasMediator)
 {
+	zval *this, *mediatorName;
+	char *rawMediatorName;
+	int rawMediatorNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
+		return;
+	}
 }
+/* }}} */
+/* {{{ proto public object View::removeMediator(string mediatorName)
+		remove the registered IMediator with name mediatorName */
 PHP_METHOD(View, removeMediator)
 {
+	zval *this, *mediatorName;
+	char *rawMediatorName;
+	int rawMediatorNameLength;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
+		return;
+	}
 }
+/* }}} */
 /* MacroCommand */
 /* {{{ proto protected void MacroCommand::initializeMacroCommand
    this is a hook method to be overriden by subclasses, which will be called by the constructor */
@@ -513,9 +748,9 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
 			"initializemacrocommand", NULL);
 
-/*  the puremvc php code doesnt have this, but its something that may merit a question
-	on the mailin list / forum
-//////
+/*  the puremvc php code doesnt call the parent constructor,
+	but its something that may merit a question on the mailin list / forum
+/////
 	zend_call_method_with_0_params(&this, puremvc_notifier_ce, NULL,
 			"__construct", NULL);
 */
@@ -1408,7 +1643,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_icontroller_registerCommand, 0, 0, 2)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_icontroller_executeCommand, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+	ZEND_ARG_INFO(0, "notification")
 ZEND_END_ARG_INFO();
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_icontroller_removeCommand, 0, 0, 1)
@@ -1625,7 +1860,7 @@ static function_entry puremvc_view_iface_methods[] = {
 /* Controller */
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_executeCommand, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "note", "INotification", 0)
+	ZEND_ARG_INFO(0, "note")
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_controller_registerCommand, 0, 0, 2)
