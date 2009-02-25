@@ -2,18 +2,18 @@
 test the constructor to see if it initializes proxyMap, and base hook initializes View and calls the hook method
 --FILE--
 <?php
-class MyController extends Controller {
-	public static function getInstance() {
-		if(is_null(self::$instance))
-			self::$instance = new self();
-		return self::$instance;
-	}
-	public function initializeController() {
-		parent::initializeController();
-		var_dump($this->view);
-		var_dump($this->commandMap);
-	}
-}
+include(dirname(__FILE__) . '/../../testlib/include.php');
+MyController::enableWacky();
 MyController::getInstance();
 ?>
 --EXPECT--
+object(View)#3 (2) {
+  ["mediatorMap:protected"]=>
+  array(0) {
+  }
+  ["observerMap:protected"]=>
+  array(0) {
+  }
+}
+array(0) {
+}

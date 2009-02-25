@@ -21,11 +21,11 @@ class MyModel extends Model {
 	}
 	public function initializeModel() {
 		$p = new MyProxy();
-		$this->proxyMap[$p->getName()] = $p;
+		$this->proxyMap[$p->getProxyName()] = $p;
 	}
 }
-$m = MyModel::getInstance();
-var_dump($m->removeProxy('testProxy'));
-var_dump($m);
+var_dump(MyModel::getInstance()->removeProxy('testProxy'));
 ?>
 --EXPECT--
+object(MyProxy)#2 (0) {
+}

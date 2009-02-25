@@ -18,9 +18,31 @@ class MyModel extends Model {
 		return self::$instance;
 	}
 	public function initializeModel() {
-		$this->proxyMap[] = new MyProxy();
+		$p = new MyProxy();
+		$this->proxyMap[$p->getProxyName()] = $p;
+		var_dump($this);
 	}
 }
-var_dump(MyModel::getInstance()->retrieveProxy('testProxy'));
+$m = MyModel::getInstance();
+var_dump($m);
+var_dump($m->retrieveProxy('testProxy'));
 ?>
 --EXPECT--
+object(MyModel)#1 (1) {
+  ["proxyMap:protected"]=>
+  array(1) {
+    ["testProxy"]=>
+    object(MyProxy)#2 (0) {
+    }
+  }
+}
+object(MyModel)#1 (1) {
+  ["proxyMap:protected"]=>
+  array(1) {
+    ["testProxy"]=>
+    object(MyProxy)#2 (0) {
+    }
+  }
+}
+object(MyProxy)#2 (0) {
+}

@@ -17,18 +17,28 @@ object(SimpleCommand)#1 (1) {
       }
     }
     ["view:protected"]=>
-    object(View)#5 (2) {
+    object(View)#6 (2) {
       ["mediatorMap:protected"]=>
-      NULL
+      array(0) {
+      }
       ["observerMap:protected"]=>
-      NULL
+      array(0) {
+      }
     }
     ["controller:protected"]=>
     object(Controller)#4 (2) {
       ["view:protected"]=>
-      NULL
+      object(View)#6 (2) {
+        ["mediatorMap:protected"]=>
+        array(0) {
+        }
+        ["observerMap:protected"]=>
+        array(0) {
+        }
+      }
       ["commandMap:protected"]=>
-      NULL
+      array(0) {
+      }
     }
   }
 }

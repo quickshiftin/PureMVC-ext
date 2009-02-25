@@ -19,17 +19,27 @@ object(MyFacade)#1 (3) {
     }
   }
   ["view:protected"]=>
-  object(View)#4 (2) {
+  object(View)#5 (2) {
     ["mediatorMap:protected"]=>
-    NULL
+    array(0) {
+    }
     ["observerMap:protected"]=>
-    NULL
+    array(0) {
+    }
   }
   ["controller:protected"]=>
   object(Controller)#3 (2) {
     ["view:protected"]=>
-    NULL
+    object(View)#5 (2) {
+      ["mediatorMap:protected"]=>
+      array(0) {
+      }
+      ["observerMap:protected"]=>
+      array(0) {
+      }
+    }
     ["commandMap:protected"]=>
-    NULL
+    array(0) {
+    }
   }
 }

@@ -15,3 +15,5 @@ class MyModel extends Model {
 MyModel::getInstance();
 ?>
 --EXPECT--
+array(0) {
+}
