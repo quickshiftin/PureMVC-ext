@@ -5,5 +5,6 @@ ensure we can store a command via Facade::registerMediator
 include(dirname(__FILE__) . '/../../testlib/include.php');
 $f = Facade::getInstance();
 $f->registerMediator(new Mediator('testMediator'));
+var_dump($f);
 --EXPECT--
 sadfa

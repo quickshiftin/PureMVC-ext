@@ -23,6 +23,7 @@ class MyView extends View {
 	}
 
 	public function notifyObservers($inotification) {
+echo 'CARE' . PHP_EOL;
 		echo get_class($inotification) . PHP_EOL;
 	}
 }
