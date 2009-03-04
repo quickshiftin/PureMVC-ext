@@ -1260,9 +1260,10 @@ PHP_METHOD(Facade, registerMediator)
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
 				sizeof("view")-1, 1 TSRMLS_CC);
-
+/*
 	zend_call_method_with_1_params(&view, puremvc_view_ce, NULL, "registermediator",
 			NULL, mediator);
+*/
 }
 /* }}} */
 /* {{{ proto public final mixed Facade::retrieveMediator(string mediatorName)
@@ -1425,26 +1426,18 @@ PHP_METHOD(Mediator, __construct)
 	}
 
 	if(Z_TYPE_P(mediatorName) == IS_NULL) {
-php_printf("word\n");
 		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
 			(void**)&tmp) == FAILURE) {
-php_printf("failed\n");
 			return;
-		} else {
-			php_printf("NAME: %s\n", Z_STRVAL_PP(tmp));
 		}
-
-	zend_update_property(this_ce, this, "mediatorName",
-		sizeof("mediatorName")-1, *tmp);
+		zend_update_property(this_ce, this, "mediatorName",
+			sizeof("mediatorName")-1, *tmp);
 	} else {
-php_printf("no\n");
 		convert_to_string(mediatorName);
-		*tmp = mediatorName;
-	zend_update_property(this_ce, this, "mediatorName",
-		sizeof("mediatorName")-1, mediatorName);
+
+		zend_update_property(this_ce, this, "mediatorName",
+			sizeof("mediatorName")-1, mediatorName);
 	}
-
-
 }
 /* }}} */
 /* {{{ proto public string Mediator::getMediatorName()
@@ -1691,19 +1684,17 @@ PHP_METHOD(Observer, __construct)
 {
 	zval *this, *notifyMethod, *notifyContext;
 	zend_class_entry *this_ce;
-	char *rawNotifyMethod, *rawNotifyContext;
-	int rawNotifyMethodLength, rawNotifyContextLength;
+	char *rawNotifyMethod;
+	int rawNotifyMethodLength;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "so",
 		&rawNotifyMethod, &rawNotifyMethodLength,
-		&rawNotifyContext, &rawNotifyContextLength) == FAILURE) {
+		&notifyContext) == FAILURE) {
 		return;
 	}
 
 	MAKE_STD_ZVAL(notifyMethod);
 	ZVAL_STRINGL(notifyMethod, rawNotifyMethod, rawNotifyMethodLength, 1);
-	MAKE_STD_ZVAL(notifyContext);
-	ZVAL_STRINGL(notifyContext, rawNotifyContext, rawNotifyContextLength, 1);
 
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
@@ -1738,20 +1729,15 @@ PHP_METHOD(Observer, setNotifyMethod)
 		set the notify method for the instance */
 PHP_METHOD(Observer, setNotifyContext)
 {
-	zval *notifyContext;
-	char *rawNotifyContext;
-	int rawNotifyContextLength;
+	zval *notifyContext, *this;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
-		&rawNotifyContext, &rawNotifyContextLength) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
+		&notifyContext) == FAILURE) {
 		return;
 	}
 
-	MAKE_STD_ZVAL(notifyContext);
-	ZVAL_STRINGL(notifyContext, rawNotifyContext, rawNotifyContextLength, 1);
-	ZVAL_ADDREF(notifyContext);
-
-	zend_update_property(puremvc_observer_ce, getThis(),
+	this = getThis();
+	zend_update_property(puremvc_observer_ce, this,
 		"context", sizeof("context")-1, notifyContext TSRMLS_CC);
 }
 /* }}} */
@@ -1765,7 +1751,7 @@ PHP_METHOD(Observer, getNotifyMethod)
 	notifyMethod = zend_read_property(puremvc_observer_ce, this,
 					"notify", sizeof("notify")-1, 1 TSRMLS_CC);
 
-	//RETVAL_STRINGL(Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod));
+	RETVAL_STRINGL(Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod), 1);
 }
 /* }}} */
 /* {{{ proto string Observer::getNotifyContext()
@@ -1778,7 +1764,7 @@ PHP_METHOD(Observer, getNotifyContext)
 	notifyContext = zend_read_property(puremvc_observer_ce, this,
 					"context", sizeof("context")-1, 1 TSRMLS_CC);
 
-	//RETVAL_STRINGL(Z_STRVAL_P(notifyContext), Z_STRLEN_P(notifyContext));
+	RETVAL_OBJECT(notifyContext, 1);
 }
 /* }}} */
 /* {{{ proto public void Observer:;notifyObserver(object notification)
@@ -1816,7 +1802,7 @@ PHP_METHOD(Observer, compareNotifyContext)
 		return;
 	}
 
-	context = zend_read_property(puremvc_observer_ce, this,
+	context = zend_read_property(zend_get_class_entry(this), this,
 					"context", sizeof("context")-1, 1 TSRMLS_CC);
 
 	if(Z_OBJHANDLE_P(context) == Z_OBJHANDLE_P(object)) {
@@ -2024,7 +2010,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_setNotifyMethod, 0, 0, 1)
 	ZEND_ARG_INFO(0, setNotifyMethod)
 ZEND_END_ARG_INFO()
 static
-ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_setNotifyContent, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_setNotifyContext, 0, 0, 1)
 	ZEND_ARG_INFO(0, notifyContent)
 ZEND_END_ARG_INFO()
 static
@@ -2037,7 +2023,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_compareNotifyContent, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_observer_iface_methods[] = {
 	PHP_ABSTRACT_ME(IObserver, setNotifyMethod, arginfo_iobserver_setNotifyMethod)
-	PHP_ABSTRACT_ME(IObserver, setNotifyContent, arginfo_iobserver_setNotifyContent)
+	PHP_ABSTRACT_ME(IObserver, setNotifyContext, arginfo_iobserver_setNotifyContext)
 	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_iobserver_notifyObserver)
 	PHP_ABSTRACT_ME(IObserver, compareNotifyContext, arginfo_iobserver_compareNotifyContent)
 	{ NULL, NULL, NULL }
