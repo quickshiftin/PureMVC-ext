@@ -1,9 +1,15 @@
 <?php
 class MyView extends View {
+	public static $isVerbose = false;
+
 	public static function getInstance() {
 		if(is_null(self::$instance))
 			self::$instance = new self();
 		return self::$instance;
+	}
+
+	public static function makeVerbose() {
+		self::$isVerbose = true;
 	}
 
 	public function hasMediator($notificationName) {
@@ -12,6 +18,12 @@ class MyView extends View {
 
 	public function registerMediator($mediator) {
 		var_dump($mediator);
+	}
+
+	public function registerObserver( $notificationName, IObserver $observer ) {
+		if(self::$isVerbose)
+			var_dump(func_get_args());
+		parent::registerObserver($notificationName, $observer);
 	}
 
 	public function retrieveMediator($notificationName) {
