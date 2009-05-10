@@ -37,6 +37,7 @@ class MyController extends Controller {
 	public function removeCommand($notificationName) {
 		if(!self::$shouldSuppressEcho)
 			echo $notificationName . PHP_EOL;
+		parent::removeCommand($notificationName);
 	}
 
 	public function initializeController() {
