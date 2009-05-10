@@ -453,11 +453,10 @@ PHP_METHOD(Controller, hasCommand)
 		remove a command for a given notification */
 PHP_METHOD(Controller, removeCommand)
 {
-	zval *this, *commandMap, *notificationName;
+	zval *this, *commandMap;
 	zend_class_entry *this_ce;
 	char *rawNotificationName;
 	int rawNotificationNameLength;
-	HashTable *commandMapHT;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
 			&rawNotificationName, &rawNotificationNameLength) == FAILURE) {
@@ -465,16 +464,10 @@ PHP_METHOD(Controller, removeCommand)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
-	commandMap = zend_read_property(this_ce, this, "commandMap",
-						sizeof("commandMap")-1, 1 TSRMLS_CC);
-	commandMapHT = Z_ARRVAL_P(commandMap);
+	commandMap = zend_read_property(zend_get_class_entry(this), this, "commandMap",
+						strlen("commandMap"), 1 TSRMLS_CC);
 
-//// TODO: set the value to null instead
-///	zend_hash_del(commandMapHT, rawNotificationName, rawNotificationNameLength);
-	
-	/// TODO is this next step needed ?
-	// zend_update_property(this_ce, this, "commandMap", sizeof("commandMap")-1, commandMap);
+	zend_hash_del(Z_ARRVAL_P(commandMap), rawNotificationName, rawNotificationNameLength+1);
 }
 /* }}} */
 /* Model */
@@ -804,6 +797,8 @@ PHP_METHOD(View, registerMediator)
 		mediator) == FAILURE) {	
 		return;
 	}
+
+//// TODO
 }
 
 /* }}} */
@@ -819,6 +814,8 @@ PHP_METHOD(View, retrieveMediator)
 			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
 		return;
 	}
+
+//// TODO
 }
 
 /* }}} */
@@ -834,6 +831,8 @@ PHP_METHOD(View, hasMediator)
 			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
 		return;
 	}
+
+//// TODO
 }
 /* }}} */
 /* {{{ proto public object View::removeMediator(string mediatorName)
@@ -848,6 +847,8 @@ PHP_METHOD(View, removeMediator)
 			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
 		return;
 	}
+
+//// TODO
 }
 /* }}} */
 /* MacroCommand */
