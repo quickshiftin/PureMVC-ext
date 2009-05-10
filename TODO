@@ -19,11 +19,11 @@ tests
 	CODING CODE-COMPLETE STATUS
 	core
 		model
-			Model ~ NEEDS CLEANUP
+			Model ~ MOSTLY DONE
 		view
 			View
 		controller
-			Controller ~ NEEDS CLEANUP
+			Controller ~ MOSTLY DONE
 	pattern
 		command
 			MacroCommand - DONE
@@ -43,11 +43,11 @@ tests
 	TESTING CODE-COMPLETE STATUS 
 	core
 		model
-			Model
+			Model - MOSTLY DONE
 		view
 			View
 		controller
-			Controller
+			Controller - MOSTLY DONE
 	pattern
 		command
 			MacroCommand - DONE
