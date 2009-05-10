@@ -111,7 +111,6 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 	return puremvc_call_method_multi_param(object_pp, obj_ce, fn_proxy, function_name, function_name_len, retval_ptr_ptr, param_count, args TSRMLS_DC);
 }
 /* }}} */
-
 /* @param char *classname class name of method
  * @param char *methodname name of mehtod
  * @param int isStart (0|1) is this the start or end of the method
@@ -294,17 +293,55 @@ PHP_METHOD(Controller, getInstance)
 PHP_METHOD(Controller, executeCommand)
 {
 	zval *this, *notification, *notificationName, *commandMap;
+	zval *hasCommand, *commandName, **tmp;
+	zend_class_entry *this_ce;
 
+	/* setup this & this_ce */
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+
+	/* parse params */
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&notification) == FAILURE) {
 		return;
 	}
 
-	/* get the notification name */
-	zend_call_method_with_0_params(&notification,
-			zend_get_class_entry(notification), NULL, "getname", &notificationName);
+	/* populate commandMap from $this->commandMap */
+	commandMap = zend_read_property(zend_get_class_entry(this), this,
+						"commaneMap", sizeof("commandMap")-1, 1 TSRMLS_CC);
 
-	//// TODO: LOOK IN $this->commandMap for notificationName ////
+	/* get the notification name
+	 * call getName() on the INotification instance
+	 */
+	zend_call_method_with_0_params(&notification,
+			zend_get_class_entry(notification), NULL,
+				"getname", &notificationName);
+
+	/* TODO: LOOK IN $this->commandMap for notificationName */
+	zend_call_method_with_1_params(&this, this_ce, NULL,
+			"hascommand", NULL, hasCommand);
+	/* bail, if this Controller doesnt have a command for the supplied
+	 * INotification
+	 */
+	if(Z_BVAL_P(hasCommand)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING,
+			"Controller::executeCommand(); no registered Command \
+			for INotification name [%s]", Z_STRVALP(notificationName));
+		return;
+	}
+return;
+
+	/* load up the command name and bail if we cant find it..
+	 * the data will be populated in tmp
+	 */
+	if(zend_hash_find(Z_ARRVAL_P(commandMap), Z_STRVAL_P(notificationName),
+			Z_STRLEN_P(notificationName), (void**)&tmp) == FAILURE) {
+		return;
+	}
+
+	/* create an instance of the (comman name) class named in the commandMap
+	 * and call execute() on it, passing it the INotification instance */
+	puremvc_execute_command_in_hash(tmp, notification);
 }
 /* }}} */
 /* {{{ proto public void Controller::registerCommand( string notificationName, string commandClassName)
@@ -317,54 +354,67 @@ PHP_METHOD(Controller, registerCommand)
 	char *rawNotificationName = NULL, *rawCommandClassName = NULL;
 	int rawNotificationNameLength, rawCommandClassNameLength;
 
+	/* parse parameters */
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
 		&rawNotificationName, &rawNotificationNameLength,
 		&rawCommandClassName, &rawCommandClassNameLength) == FAILURE) {
 		return;
 	}
 
+	/* populate the notificationName zval via the raw components
+	 * zend_parse_parameters gives us
+	 */
 	MAKE_STD_ZVAL(notificationName);
 	ZVAL_STRINGL(notificationName, rawNotificationName,
 			rawNotificationNameLength, 1);
 	MAKE_STD_ZVAL(commandClassName);
+
+	/* populate the commandClassName zval via the raw components
+	 * zend_parse_parameters gives us
+	 */
 	ZVAL_STRINGL(commandClassName, rawCommandClassName,
 			rawCommandClassNameLength, 1);
 	ZVAL_ADDREF(commandClassName);
 
+	/* create a string zval holding "executeCommand" */
 	MAKE_STD_ZVAL(executeCommandStr);
 	ZVAL_STRINGL(executeCommandStr, "executeCommand",
-			sizeof("executeCommand")-1, 1);
+			strlen("executeCommand")+1, 1);
 
+	/* setup this & this_ce */
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 
+	/* populate the commandMap from this instance */
 	commandMap = zend_read_property(this_ce, this, "commandMap",
 					sizeof("commandMap")-1, 1 TSRMLS_CC);
 
-HashTable *cmHT = Z_ARRVAL_P(commandMap);
-if(cmHT == NULL)
-	php_printf("FUCK U\n");
-else
-	zend_hash_update(cmHT, rawNotificationName,
-					rawNotificationNameLength, (void*)&commandClassName,
-					sizeof(zval*), NULL);
+	/* create an entry in $this->commandMap, with a key is a notification name,
+	 * and the value is a command name
+	 */
+	HashTable *cMapHt = Z_ARRVAL_P(commandMap);
+	if(cMapHt)
+		zend_hash_update(cMapHt, rawNotificationName,
+				rawNotificationNameLength+1, (void*)&commandClassName,
+				sizeof(zval*), NULL);
 
-/*
-	zend_update_property(this_ce, this, "commandMap",
-			sizeof("commandMap")-1, commandMap TSRMLS_CC);
-
+	/* instantiate an  Observer */
 	MAKE_STD_ZVAL(observer);
 	object_init_ex(observer, puremvc_observer_ce);
 
+	/* call the Observer constructor, passing telling it to call 
+	 * $this->executeCommand() it observes a particular notification
+	 */
 	zend_call_method_with_2_params(&observer, puremvc_observer_ce, NULL,
 			"__construct", NULL, executeCommandStr, this);
 
+	/* read thew View from this instance */
 	view = zend_read_property(this_ce, this, "view",
 				sizeof("view")-1, 1 TSRMLS_CC);
 
+	/* call $this->view->registerObserver() passing the notification name */
 	zend_call_method_with_2_params(&view, zend_get_class_entry(view), NULL,
 			"registerobserver", NULL, notificationName, observer);
-*/
 }
 /* }}} */
 /* {{{ proto public bool Controller::hasCommand(string notificationName)
@@ -386,9 +436,9 @@ PHP_METHOD(Controller, hasCommand)
 
 	if(zend_hash_exists(Z_ARRVAL_P(commandMap),
 			rawNotificationName, rawNotificationNameLength)) {
-		RETURN_TRUE
+		RETURN_TRUE;
 	} else {
-		RETURN_FALSE
+		RETURN_FALSE;
 	}
 }
 /* }}} */
@@ -652,33 +702,62 @@ PHP_METHOD(View, getInstance)
 			register an observer for a particular notificationName */
 PHP_METHOD(View, registerObserver)
 {
-	zval *this, *notificationName, *observer, *observerMap, *tmpMap;
+	zval *this, *notificationName, *observer, *observerMap;
 	zend_class_entry *this_ce;
 	char *rawNotificationName;
 	int rawNotificationNameLength;
 
+	/* parse parameters */
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "so",
 			&rawNotificationName, &rawNotificationNameLength,
 			&observer) == FAILURE) {
 		return;
 	}
 
+	/* setup this && this_ce */
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 
+	/* read the observerMap from this instance */
 	observerMap = zend_read_property(this_ce, this, "observerMap",
-					sizeof("observerMap")-1, 1 TSRMLS_CC);
+					strlen("observerMap"), 1 TSRMLS_CC);
 
-	if(!zend_hash_exists(Z_ARRVAL_P(observerMap),
-			rawNotificationName, rawNotificationNameLength)) {
+	HashTable *oMapHt = Z_ARRVAL_P(observerMap);
+
+	/* check to see if we've yet registered an Observer for the supplied
+	 * notification name yet
+	 */
+	if(!zend_hash_exists(oMapHt, rawNotificationName, rawNotificationNameLength+1)) {
+		/* if not, lets initialize an array and drop the Observer in there
+		 * w/ the notification name as the key
+		 */
+		zval *tmpMap;
+
+		/* create an array for the observers corresponding to the notfication name */
 		MAKE_STD_ZVAL(tmpMap);
 		array_init(tmpMap);
-		add_assoc_zval(observerMap, "observerMap", tmpMap);
+		/* add the observer to said array */
+		ZVAL_ADDREF(observer);
+		add_next_index_zval(tmpMap, observer);
+
+		/* now add the new array to the observerMap */
+		ZVAL_ADDREF(tmpMap);
+		if(oMapHt)
+			zend_hash_update(oMapHt, rawNotificationName,
+					rawNotificationNameLength+1, (void**)&tmpMap,
+					sizeof(zval*), NULL);
 	} else {
-		zend_hash_find(Z_ARRVAL_P(observerMap), rawNotificationName,
-			rawNotificationNameLength, (void**)&tmpMap);
+		/* otherwise read observerMap from the instance and append to the
+		 * existing list of Observers, the value will be stored in tmpMap
+		 */
+		zval **tmpMap;
+
+		zend_hash_find(oMapHt, rawNotificationName,
+			rawNotificationNameLength+1, (void**)&tmpMap);
+
+		ZVAL_ADDREF(observer);
+		add_next_index_zval(*tmpMap, observer);
 	}
-	add_assoc_zval(tmpMap, rawNotificationName, observer);
 }
 /* }}} */
 /* {{{ proto public void View::notifyObservers(object notification)
@@ -2145,8 +2224,10 @@ void puremvc_model_addprops(zend_class_entry *model_ce TSRMLS_DC)
 /* View */
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerObserver, 0, 0, 2)
+//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 	ZEND_ARG_INFO(0, notificationName)
-	ZEND_ARG_OBJ_INFO(0, "observer", "IObserver", 0)
+	//ZEND_ARG_OBJ_INFO(0, "observer", "IObserver", 0)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_notifyObservers, 0, 0 , 1)
