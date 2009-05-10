@@ -2,6 +2,7 @@
 class MyController extends Controller {
 	private static $shouldSuppressEcho = false;
 	private static $amWacky = false;
+	private static $shouldUseMyView = false;
 
 	public static function getInstance() {
 		if(is_null(self::$instance))
@@ -17,9 +18,14 @@ class MyController extends Controller {
 		self::$amWacky = true;
 	}
 
+	public static function enableMyView() {
+		self::$shouldUseMyView = true;
+	}
+
 	public function hasCommand($notificationName) {
 		if(!self::$shouldSuppressEcho)
 			echo $notificationName . PHP_EOL;
+		return parent::hasCommand($notificationName);
 	}
 
 	public function registerCommand($notificationName, $commandClassRef) {
@@ -33,16 +39,13 @@ class MyController extends Controller {
 			echo $notificationName . PHP_EOL;
 	}
 
-	public function executeCommand($notification) {
-		var_dump($notification);
-		parent::executeCommand($notification);
-	}
-
 	public function initializeController() {
 		if(self::$amWacky) {
 			parent::initializeController();
 			var_dump($this->view);
 			var_dump($this->commandMap);
+		} elseif(self::$shouldUseMyView) {
+			$this->view = MyView::getInstance();
 		}
 	}
 
