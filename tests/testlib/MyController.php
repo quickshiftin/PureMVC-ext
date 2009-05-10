@@ -25,6 +25,7 @@ class MyController extends Controller {
 	public function registerCommand($notificationName, $commandClassRef) {
 		if(!self::$shouldSuppressEcho)
 			echo "$notificationName $commandClassRef" . PHP_EOL;
+		parent::registerCommand($notificationName, $commandClassRef);
 	}
 
 	public function removeCommand($notificationName) {
@@ -43,5 +44,9 @@ class MyController extends Controller {
 			var_dump($this->view);
 			var_dump($this->commandMap);
 		}
+	}
+
+	public function dumpCommandMap() {
+		var_dump($this->commandMap);
 	}
 }
