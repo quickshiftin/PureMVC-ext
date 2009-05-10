@@ -161,7 +161,7 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 	if(zend_lookup_class(Z_STRVAL(tmpcpy), Z_STRLEN(tmpcpy),
 		&ce TSRMLS_CC)  == FAILURE) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE,
-		"Class %s does not exist.", Z_STRVAL_PP(val));
+		"pure_mvc-internal: Class [%s] does not exist.", Z_STRVAL_PP(val));
 //		zend_dtor(&tmpcpy);
 		RETURN_FALSE;
 	} else {
@@ -176,6 +176,9 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 		"__construct", strlen("__construct") + 1)) {
 		zend_call_method_with_0_params(&subCommandInstance, *ce, NULL,
 			"__construct", NULL);
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to find \
+			constructor for alleged class [%s]\n", ze_p->name);
 	}
 	//zval_dtor(&tmpcpy);
 
@@ -307,9 +310,8 @@ PHP_METHOD(Controller, executeCommand)
 	}
 
 	/* populate commandMap from $this->commandMap */
-	commandMap = zend_read_property(zend_get_class_entry(this), this,
-						"commaneMap", sizeof("commandMap")-1, 1 TSRMLS_CC);
-
+	commandMap = zend_read_property(this_ce, this,
+						"commandMap", strlen("commandMap"), 1 TSRMLS_CC);
 	/* get the notification name
 	 * call getName() on the INotification instance
 	 */
@@ -317,30 +319,35 @@ PHP_METHOD(Controller, executeCommand)
 			zend_get_class_entry(notification), NULL,
 				"getname", &notificationName);
 
+
 	/* TODO: LOOK IN $this->commandMap for notificationName */
 	zend_call_method_with_1_params(&this, this_ce, NULL,
-			"hascommand", NULL, hasCommand);
+			"hascommand", &hasCommand, notificationName);
+
 	/* bail, if this Controller doesnt have a command for the supplied
 	 * INotification
 	 */
-	if(Z_BVAL_P(hasCommand)) {
+	if(!Z_BVAL_P(hasCommand)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING,
 			"Controller::executeCommand(); no registered Command \
-			for INotification name [%s]", Z_STRVALP(notificationName));
+			for INotification name [%s]", Z_STRVAL_P(notificationName));
 		return;
 	}
-return;
 
 	/* load up the command name and bail if we cant find it..
 	 * the data will be populated in tmp
 	 */
 	if(zend_hash_find(Z_ARRVAL_P(commandMap), Z_STRVAL_P(notificationName),
-			Z_STRLEN_P(notificationName), (void**)&tmp) == FAILURE) {
+			Z_STRLEN_P(notificationName)+1, (void**)&tmp) == FAILURE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING,
+			"Controller::executeCommand(); somehow we failed fetch \
+			the command name for INotificationName [%s]", Z_STRVAL_P(notificationName));
 		return;
 	}
 
 	/* create an instance of the (comman name) class named in the commandMap
 	 * and call execute() on it, passing it the INotification instance */
+//// TODO: determine if deleting the array elements is acceptable..
 	puremvc_execute_command_in_hash(tmp, notification);
 }
 /* }}} */
@@ -379,7 +386,7 @@ PHP_METHOD(Controller, registerCommand)
 	/* create a string zval holding "executeCommand" */
 	MAKE_STD_ZVAL(executeCommandStr);
 	ZVAL_STRINGL(executeCommandStr, "executeCommand",
-			strlen("executeCommand")+1, 1);
+			strlen("executeCommand"), 1);
 
 	/* setup this & this_ce */
 	this = getThis();
@@ -387,7 +394,7 @@ PHP_METHOD(Controller, registerCommand)
 
 	/* populate the commandMap from this instance */
 	commandMap = zend_read_property(this_ce, this, "commandMap",
-					sizeof("commandMap")-1, 1 TSRMLS_CC);
+					strlen("commandMap"), 1 TSRMLS_CC);
 
 	/* create an entry in $this->commandMap, with a key is a notification name,
 	 * and the value is a command name
@@ -410,7 +417,7 @@ PHP_METHOD(Controller, registerCommand)
 
 	/* read thew View from this instance */
 	view = zend_read_property(this_ce, this, "view",
-				sizeof("view")-1, 1 TSRMLS_CC);
+				strlen("view"), 1 TSRMLS_CC);
 
 	/* call $this->view->registerObserver() passing the notification name */
 	zend_call_method_with_2_params(&view, zend_get_class_entry(view), NULL,
@@ -432,10 +439,10 @@ PHP_METHOD(Controller, hasCommand)
 
 	this = getThis();
 	commandMap = zend_read_property(zend_get_class_entry(this), this,
-						"commaneMap", sizeof("commandMap")-1, 1 TSRMLS_CC);
+						"commandMap", strlen("commandMap"), 1 TSRMLS_CC);
 
 	if(zend_hash_exists(Z_ARRVAL_P(commandMap),
-			rawNotificationName, rawNotificationNameLength)) {
+			rawNotificationName, rawNotificationNameLength+1)) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -752,6 +759,7 @@ PHP_METHOD(View, registerObserver)
 		 */
 		zval **tmpMap;
 
+		//// TODO check SUCCESS / FAILURE ..
 		zend_hash_find(oMapHt, rawNotificationName,
 			rawNotificationNameLength+1, (void**)&tmpMap);
 
