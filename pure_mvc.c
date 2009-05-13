@@ -1676,6 +1676,7 @@ PHP_METHOD(Notification, getType)
 	this = getThis();
 	type = zend_read_property(puremvc_notification_ce, this,
 		"type", sizeof("type")-1, 1 TSRMLS_CC);
+
 	RETVAL_STRINGL(Z_STRVAL_P(type), Z_STRLEN_P(type), 1);
 }
 /* }}} */
@@ -1951,28 +1952,109 @@ PHP_METHOD(Observer, compareNotifyContext)
 }
 /* }}} */
 /* Proxy */
+/* {{{ proto public void __construct([string name [, mixed data ]])
+		constructor */
 PHP_METHOD(Proxy, __construct)
 {
+	zval *this, *proxyName, *data = NULL, *facade, **tmp;
+	zend_class_entry *this_ce;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|o",
+		&proxyName, &data) == FAILURE) {
+		return;
+	}
+
+	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
+			"getinstance", &facade);
+
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+
+	zend_update_property(this_ce, this, "facade",
+			strlen("facade"), facade TSRMLS_CC);
+
+	if(!data) {
+		MAKE_STD_ZVAL(data);
+		ZVAL_NULL(data);
+	}
+
+	if(data != NULL) {
+		zend_update_property(this_ce, this, "data",
+			strlen("data"), data TSRMLS_CC);
+	}
+
+	if(Z_TYPE_P(proxyName) == IS_NULL) {
+		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
+			(void**)&tmp) == FAILURE) {
+			return;
+		}
+		zend_update_property(this_ce, this, "proxyName",
+			strlen("proxyName"), *tmp);
+	} else {
+		convert_to_string(proxyName);
+
+		zend_update_property(this_ce, this, "proxyName",
+			strlen("proxyName"), proxyName);
+	}
 }
 /* }}} */
+/* {{{ proto public string getProxyName()
+		return the name of this proxy */
 PHP_METHOD(Proxy, getProxyName)
 {
+	zval *this, *proxyName;
+
+	this = getThis();
+
+	proxyName = zend_read_property(zend_get_class_entry(this), this,
+					"proxyName", strlen("proxyName"), 1 TSRMLS_CC);
+
+	RETVAL_STRINGL(Z_STRVAL_P(proxyName), Z_STRLEN_P(proxyName), 1);
 }
 /* }}} */
+/* {{{ proto public void setData(mixed data)
+		set arbitrary data on this proxy (supposedly w/e its proxying..) */
 PHP_METHOD(Proxy, setData)
 {
+	zval *data, *this;
+
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z",
+		&data) == FAILURE ) {
+		return;
+	}
+
+	this = getThis();
+	zend_update_property(zend_get_class_entry(this), this,
+		"data", strlen("data"), data TSRMLS_CC);
+
+	this = getThis();
 }
 /* }}} */
+/* {{{ proto public mixed getData()
+		fetch arbitrary data stored w/ setData() */
 PHP_METHOD(Proxy, getData)
 {
+	zval *data, *this;
+
+	this = getThis();
+	data = zend_read_property(zend_get_class_entry(this), this,
+				"data", strlen("data"), 1 TSRMLS_CC);
+
+	RETURN_ZVAL(data, 0, 0);
 }
 /* }}} */
+/* {{{ public void onRegister()
+		method to fire once this proxy has been registered */
 PHP_METHOD(Proxy, onRegister)
 {
+	return;
 }
 /* }}} */
+/* {{{ public void onRemove()
+		method to fire once this proxy has been un-registered */
 PHP_METHOD(Proxy, onRemove)
 {
+	return;
 }
 /* }}} */
 /* ICommand */
