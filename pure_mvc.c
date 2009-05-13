@@ -1482,8 +1482,7 @@ PHP_METHOD(Facade, sendNotification)
 /* }}} */
 /* Mediator */
 /* {{{ proto public void construct(string mediatorName [mixed viewComponent = null])
-		constructor
-	*/
+		constructor */
 PHP_METHOD(Mediator, __construct)
 {
 	zval *this, *mediatorName, *viewComponent = NULL, *facade, **tmp;
@@ -1546,7 +1545,10 @@ PHP_METHOD(Mediator, getMediatorName)
 
 	RETURN_STRINGL(Z_STRVAL_P(mediatorName), Z_STRLEN_P(mediatorName), 1);
 }
-/* }}} */ PHP_METHOD(Mediator, getViewComponent)
+/* }}} */
+/* {{{ proto public string getViewComponent()
+		return the arbitrary data set by setViewComponent() */
+PHP_METHOD(Mediator, getViewComponent)
 {
 	zval *this, *viewComponent;
 	this = getThis();
@@ -1556,6 +1558,8 @@ PHP_METHOD(Mediator, getMediatorName)
 	RETVAL_ZVAL(viewComponent, 0, 0);
 }
 /* }}} */
+/* {{{ proto void setViewComponent(mixed viewComponent)
+		set arbitrary data (supposedly the 'view component' this mediator stewards */
 PHP_METHOD(Mediator, setViewComponent)
 {
 	zval *viewComponent, *this;
@@ -1571,6 +1575,8 @@ PHP_METHOD(Mediator, setViewComponent)
 			strlen("viewComponent"), viewComponent TSRMLS_CC);
 }
 /* }}} */
+/* {{{ proto public array listNotificationInterests()
+		list the names of any notifications this mediator is interested in */
 PHP_METHOD(Mediator, listNotificationInterests)
 {
 	zval *emptyArray;
@@ -1581,16 +1587,22 @@ PHP_METHOD(Mediator, listNotificationInterests)
 	RETURN_ZVAL(emptyArray, 0, 0);
 }
 /* }}} */
+/* {{{ proto public void handleNotification(object notification)
+		potentially take action based on a supplied notification */
 PHP_METHOD(Mediator, handleNotification)
 {
 	/* intentionally left blank */
 }
 /* }}} */
+/* {{{ proto public void onRegister() 
+		a hook to run once this instance has been registered */
 PHP_METHOD(Mediator, onRegister)
 {
 	return;
 }
 /* }}} */
+/* {{{ proto public void onRemove()
+		a hook to run once this instance has been un-registered */
 PHP_METHOD(Mediator, onRemove)
 {
 	return;
