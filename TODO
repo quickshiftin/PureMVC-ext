@@ -31,7 +31,7 @@ tests
 		facade
 			Facade 	~ DONE [ add end-to-end unit tests ]
 		mediator
-			Mediator
+			Mediator ~ MOSTLY DONE
 		observer
 			Notifier - DONE
 			Notification - DONE

@@ -1494,37 +1494,43 @@ PHP_METHOD(Mediator, __construct)
 		return;
 	}
 
+	/* get the facade instance */
 	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
 			"getinstance", &facade);
 
+	/* setup this && this_ce */
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 
+	/* store a reference to the facade in this instance */
 	zend_update_property(this_ce, this, "facade",
-			sizeof("facade")-1, facade TSRMLS_CC);
+			strlen("facade"), facade TSRMLS_CC);
 
+	/* create a zval pointing w/ the value null */
 	if(!viewComponent) {
 		MAKE_STD_ZVAL(viewComponent);
 		ZVAL_NULL(viewComponent);
 	}
 
+	/* store the viewComponent on this instance */
 	if(viewComponent != NULL) {
 		zend_update_property(this_ce, this, "viewComponent",
-			sizeof("viewComponent")-1, viewComponent TSRMLS_CC);
+			strlen("viewComponent"), viewComponent TSRMLS_CC);
 	}
 
+	/* potentially set the mediatorName */
 	if(Z_TYPE_P(mediatorName) == IS_NULL) {
 		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
 			(void**)&tmp) == FAILURE) {
 			return;
 		}
 		zend_update_property(this_ce, this, "mediatorName",
-			sizeof("mediatorName")-1, *tmp);
+			strlen("mediatorName"), *tmp);
 	} else {
 		convert_to_string(mediatorName);
 
 		zend_update_property(this_ce, this, "mediatorName",
-			sizeof("mediatorName")-1, mediatorName);
+			strlen("mediatorName"), mediatorName);
 	}
 }
 /* }}} */
@@ -1532,30 +1538,62 @@ PHP_METHOD(Mediator, __construct)
 		get the name for this instance */
 PHP_METHOD(Mediator, getMediatorName)
 {
-	
+	zval *this, *mediatorName;
+
+	this = getThis();
+	mediatorName = zend_read_property(zend_get_class_entry(this), this,
+			"mediatorName", strlen("mediatorName"), 1 TSRMLS_CC);
+
+	RETURN_STRINGL(Z_STRVAL_P(mediatorName), Z_STRLEN_P(mediatorName), 1);
 }
 /* }}} */ PHP_METHOD(Mediator, getViewComponent)
 {
+	zval *this, *viewComponent;
+	this = getThis();
+	viewComponent = zend_read_property(zend_get_class_entry(this), this,
+						"viewComponent", strlen("viewComponent"), 1 TSRMLS_CC);
+
+	RETVAL_ZVAL(viewComponent, 0, 0);
 }
 /* }}} */
 PHP_METHOD(Mediator, setViewComponent)
 {
+	zval *viewComponent, *this;
+
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &viewComponent)
+			== FAILURE ) {
+		return;
+	}
+
+	this = getThis();
+
+	zend_update_property(zend_get_class_entry(this), this, "viewComponent",
+			strlen("viewComponent"), viewComponent TSRMLS_CC);
 }
 /* }}} */
 PHP_METHOD(Mediator, listNotificationInterests)
 {
+	zval *emptyArray;
+
+	MAKE_STD_ZVAL(emptyArray);
+	array_init(emptyArray);
+
+	RETURN_ZVAL(emptyArray, 0, 0);
 }
 /* }}} */
 PHP_METHOD(Mediator, handleNotification)
 {
+	/* intentionally left blank */
 }
 /* }}} */
 PHP_METHOD(Mediator, onRegister)
 {
+	return;
 }
 /* }}} */
 PHP_METHOD(Mediator, onRemove)
 {
+	return;
 }
 /* }}} */
 /* Notification */
@@ -1601,7 +1639,7 @@ PHP_METHOD(Notification, getName)
 	zval *this, *name;
 	this = getThis();
 	name = zend_read_property(zend_get_class_entry(this), this,
-		"name", sizeof("name")-1, 1 TSRMLS_CC);
+		"name", strlen("name"), 1 TSRMLS_CC);
 	RETVAL_STRINGL(Z_STRVAL_P(name), Z_STRLEN_P(name), 1);
 }
 /* }}} */
@@ -1609,11 +1647,11 @@ PHP_METHOD(Notification, getName)
 	body getter method */
 PHP_METHOD(Notification, getBody)
 {
-	zval *this, *body;
+	zval *body;
 
-	this = getThis();
-	body = zend_read_property(puremvc_notification_ce, this,
+	body = zend_read_property(puremvc_notification_ce, getThis(),
 		"body", sizeof("body")-1, 1 TSRMLS_CC);
+
 	RETVAL_STRINGL(Z_STRVAL_P(body), Z_STRLEN_P(body), 1);
 }
 /* }}} */
