@@ -1,20 +1,24 @@
-coding
+coding 
 ------
 	. check all zend_class_entry* references, make sure we should be using puremvc_*_ce instead of zend_get_class_entry(getThis())
 	. make logging method a macro so it doesnt slow shit down at runtime
 	. go through and religiously add zval_dtor() calls & the like where applicable
-	. wrap calls to puremvc_call_method in a macro, in case a later version adds more params to zend_call_method
+	. make pure_mvc_call method support any number of arguments
+	. change misused sizeof() invocations to strlen() where applicable
+	. check on type hints for methods which did leverage them in the php port of pure_mvc
 
 	lower priority
 	. try to limit use of pointers, eg. use zval this instead of zval *this
 	. clean up all the comment blocks around the php-level methods
-	. ?? change strlen(stringLiteral)+1 -> sizeof(stringLiteral)-1
 	. add E_WARNING notices for all failures to zend_parse_parameters()
+	. add better error reporting throughout the code
 
 tests
 -----
 	. add non "happy path" tests, like testing hasProxy() when the proxy hasnt been registered
 	. add the skipif bit to all the unit tests
+
+>----------------------------------------------------------------------------------------------------------------------------------<
 
 	CODING CODE-COMPLETE STATUS
 	core
