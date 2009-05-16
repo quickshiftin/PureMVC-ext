@@ -4,7 +4,7 @@ function puremvc_phpt_autoload($classname) {
 
 	if(!file_exists($classpath))
 		trigger_error(
-			"could not find class @ $classpath",
+			"could not find class [$classname] @[$classpath]",
 			E_USER_ERROR
 		);
 	else
