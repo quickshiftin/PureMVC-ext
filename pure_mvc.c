@@ -409,7 +409,7 @@ PHP_METHOD(Controller, registerCommand)
 	MAKE_STD_ZVAL(observer);
 	object_init_ex(observer, puremvc_observer_ce);
 
-	/* call the Observer constructor, passing telling it to call 
+	/* call the Observer constructor, telling it to call 
 	 * $this->executeCommand() it observes a particular notification
 	 */
 	zend_call_method_with_2_params(&observer, puremvc_observer_ce, NULL,
@@ -563,7 +563,7 @@ PHP_METHOD(Model, registerProxy)
 			fetch an IProxy instance from the Model by supplying its name */
 PHP_METHOD(Model, retrieveProxy)
 {
-	zval *this, *proxyName, *proxyMap, **tmp;
+	zval *this, *proxyMap, **tmp;
 	zend_class_entry *this_ce;
 	char *rawProxyName;
 	int rawProxyNameLength;
@@ -576,7 +576,7 @@ PHP_METHOD(Model, retrieveProxy)
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 	proxyMap = zend_read_property(this_ce, this, "proxyMap",
-					sizeof("proxyMap")-1, 0 TSRMLS_CC);
+					strlen("proxyMap"), 0 TSRMLS_CC);
 
 	if(zend_hash_find(Z_ARRVAL_P(proxyMap), rawProxyName,
 		rawProxyNameLength+1, (void**)&tmp) == SUCCESS) { 
@@ -588,7 +588,7 @@ PHP_METHOD(Model, retrieveProxy)
 			remove a proxy from the Model by supplying its name */
 PHP_METHOD(Model, removeProxy)
 {
-	zval *this, *proxyName, *proxyMap, *proxy, **tmp;
+	zval *this, *proxyMap, *proxy, **tmp;
 	zend_class_entry *this_ce;
 	char *rawProxyName;
 	int rawProxyNameLength;
@@ -618,7 +618,7 @@ PHP_METHOD(Model, removeProxy)
 			determine if the Model has a registered IProxy, by the name of proxyName */
 PHP_METHOD(Model, hasProxy)
 {
-	zval *this, *proxyMap, *proxyName;
+	zval *this, *proxyMap;
 	char *rawProxyName;
 	int rawProxyNameLength;
 
@@ -629,7 +629,7 @@ PHP_METHOD(Model, hasProxy)
 
 	this = getThis();	
 	proxyMap = zend_read_property(zend_get_class_entry(this), this,
-						"proxyMap", sizeof("proxyMap")-1, 1 TSRMLS_CC);
+						"proxyMap", strlen("proxyMap"), 1 TSRMLS_CC);
 
 	if(zend_hash_exists(Z_ARRVAL_P(proxyMap),
 			rawProxyName, rawProxyNameLength+1)) {
@@ -766,39 +766,143 @@ PHP_METHOD(View, registerObserver)
 PHP_METHOD(View, notifyObservers)
 {
 	zval *this, *notification, *observerMap, *notificationName;
+	zval **observers;
 	zend_class_entry *this_ce;
+	HashTable *observersHt;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			notification) == FAILURE) {	
 		return;
 	}
 
+	/* read the observerMap from this instance */
 	observerMap = zend_read_property(this_ce, this, "observerMap",
-					sizeof("observerMap")-1, 1 TSRMLS_CC);
+					strlen("observerMap"), 1 TSRMLS_CC);
 
+	/* get the name of the INotification instance */
 	zend_call_method_with_0_params(&this, this_ce, NULL,
 				"getname", &notificationName); 
 
+	/* bail if there are no observers for this notification */
 	if(!zend_hash_exists(Z_ARRVAL_P(observerMap), Z_STRVAL_P(notificationName),
 			Z_STRLEN_P(notificationName))) {
 		return;
 	}
 
-//// TODO I HAVE A FOREACH YOU NEED TO DO
+	/* read the observers from the observerMap,
+	 * using notificationName as the key
+	 */
+	zend_hash_find(Z_ARRVAL_P(observerMap), Z_STRVAL_P(notificationName),
+			Z_STRLEN_P(notificationName)+1, (void**)&observers);
+
+	/* iterate over the observers, notifying each one and supplying it w/
+	 * the INotification instance
+	 */
+	observersHt = Z_ARRVAL_P(observerMap);
+	for( zend_hash_internal_pointer_reset(observersHt);
+		zend_hash_has_more_elements(observersHt) == SUCCESS;
+		zend_hash_move_forward(observersHt) ) {
+		zval **ppObserver;
+		ulong index;
+
+		if(zend_hash_get_current_data(observersHt, (void**)&ppObserver)
+			== FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"View::notifyObservers(); failed reading Observer");
+			continue;
+		}
+		/* loop body */
+		/* call notifyObserver() on the current observer, passing it the
+		 * INotificiation instance
+		 */
+		zend_call_method_with_1_params(ppObserver,
+				zend_get_class_entry(*ppObserver), NULL,
+				"notifyobserver", NULL, notification);
+	}
 }
 /* }}} */
 /* {{{ proto public void View::registerMediator(object mediator)
 		register an IMediator with the View */
 PHP_METHOD(View, registerMediator)
 {
-	zval *this, *mediator;
+	zval *this, *mediator, *mediatorName, *mediatorMap, *notificationInterests;
+	zval *handleNotificiationStr; 
+	zend_class_entry *this_ce, *mediator_ce;
+	HashTable *mMapHt;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 		mediator) == FAILURE) {	
 		return;
 	}
 
-//// TODO
+	/* setup this && this_ce && mediator_ce */
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+	mediator_ce = zend_get_class_entry(mediator);
+
+	/* populate the mediatorName */
+	zend_call_method_with_0_params(&this, this_ce, NULL,
+			"getmediatorname", &mediatorName);
+
+	/* read the mediatorMap */
+	mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
+					strlen("mediatorMap"), 1 TSRMLS_CC);
+
+	/* place the mediator in the mediatorMap using the mediatorName
+	 * as the key
+	 */
+	mMapHt = Z_ARRVAL_P(mediatorMap);
+	if(mMapHt)
+		zend_hash_update(mMapHt, Z_STRVAL_P(mediatorName),
+			Z_STRLEN_P(mediatorName)+1, (void*)&mediator,
+			sizeof(zval*), NULL);
+
+	/* ask the mediator about notification interests */
+	zend_call_method_with_0_params(&mediator, mediator_ce,
+			NULL, "listnotificationinterests", &notificationInterests);
+
+	/* loop over interests, creating observers and registering them */
+	if(zend_hash_num_elements(Z_ARRVAL_P(notificationInterests)) > 0) {
+		zval *observer;
+
+		/* create observer for current 'interest' */
+		MAKE_STD_ZVAL(observer);
+		object_init_ex(observer, puremvc_observer_ce);
+
+		/* populate a zval w/ the string handlenotification */
+		MAKE_STD_ZVAL(handleNotificiationStr);
+		ZVAL_STRINGL(handleNotificiationStr, "handlenotification", strlen("handlenotification"), 1);
+
+		/* invoke the Observer constructor telling it to call
+		 * $this->handleNotification() when it recieves a notification */
+		zend_call_method_with_2_params(&observer, puremvc_observer_ce, NULL,
+				"__construct", NULL, handleNotificiationStr, mediator);
+
+		/* iterate over the notificationInterests registering mediator
+		 * as an Observer for each of its interests
+		 */
+		HashTable *interestsHt = Z_ARRVAL_P(notificationInterests);
+		for( zend_hash_internal_pointer_reset(interestsHt);
+			 zend_hash_has_more_elements(interestsHt) == SUCCESS;
+			 zend_hash_move_forward(interestsHt) ) {
+			zval **ppinterest;
+			ulong index;
+
+			if(zend_hash_get_current_data(interestsHt, (void**)&ppinterest)
+				== FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+					"View::registerMediator(); failed reading current notification interest");
+				continue;
+			}
+			/* loop body */
+			zend_call_method_with_2_params(&this, this_ce, NULL,
+					"registerobserver", NULL, *ppinterest, observer);
+		}
+	}
+
+	/* inform the mediator its been registered */
+	zend_call_method_with_0_params(&mediator, mediator_ce, NULL,
+			"onregister", NULL);
 }
 
 /* }}} */
@@ -806,7 +910,8 @@ PHP_METHOD(View, registerMediator)
 		fetch a registered IMediator by name */
 PHP_METHOD(View, retrieveMediator)
 {
-	zval *this, *mediatorName;
+	zval *this, *mediatorMap, **tmp;
+	zend_class_entry *this_ce;
 	char *rawMediatorName;
 	int rawMediatorNameLength;
 
@@ -815,7 +920,15 @@ PHP_METHOD(View, retrieveMediator)
 		return;
 	}
 
-//// TODO
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+	mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
+					strlen("mediatorMap"), 0 TSRMLS_CC);
+
+	if(zend_hash_find(Z_ARRVAL_P(mediatorMap), rawMediatorName,
+		rawMediatorNameLength+1, (void**)&tmp) == SUCCESS) {
+		RETVAL_OBJECT(*tmp, 1);
+	}
 }
 
 /* }}} */
@@ -823,7 +936,7 @@ PHP_METHOD(View, retrieveMediator)
 		determine if the IMediator with name mediatorName is registered with the View */
 PHP_METHOD(View, hasMediator)
 {
-	zval *this, *mediatorName;
+	zval *this, *mediatorMap;
 	char *rawMediatorName;
 	int rawMediatorNameLength;
 
@@ -832,23 +945,111 @@ PHP_METHOD(View, hasMediator)
 		return;
 	}
 
-//// TODO
+	this = getThis();
+	mediatorMap = zend_read_property(zend_get_class_entry(this), this,
+						"mediatorMap", strlen("mediatorMap"), 1 TSRMLS_CC);
+
+	if(zend_hash_exists(Z_ARRVAL_P(mediatorMap),
+			rawMediatorName, rawMediatorNameLength+1)) {
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 /* {{{ proto public object View::removeMediator(string mediatorName)
 		remove the registered IMediator with name mediatorName */
 PHP_METHOD(View, removeMediator)
 {
-	zval *this, *mediatorName;
+	zval *this, *mediatorName, *observerMap, *mediator;
+	zval *mediatorMap, **tmp;
 	char *rawMediatorName;
 	int rawMediatorNameLength;
+	zend_class_entry *this_ce;
+	HashTable *observerMapHt;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
 			&rawMediatorName, &rawMediatorNameLength) == FAILURE) {
 		return;
 	}
 
-//// TODO
+	MAKE_STD_ZVAL(mediatorName);
+	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
+
+	/* populate the observerMap from this instance */
+	observerMap = zend_read_property(this_ce, this, "observerMap",
+					strlen("observerMap"), 1 TSRMLS_CC);
+
+	/* iterate over the observers in the map */
+	observerMapHt = Z_ARRVAL_P(observerMap);
+	for( zend_hash_internal_pointer_reset(observerMapHt);
+		 zend_hash_has_more_elements(observerMapHt) == SUCCESS;
+		 zend_hash_move_forward(observerMapHt) ) {
+		zval **ppObservers;
+		ulong observers_index;
+
+		if(zend_hash_get_current_data(observerMapHt, (void**)&ppObservers)
+			== FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"View::removeMediator(); failed reading Observers");
+			continue;
+		}
+		/* loop body */
+		/* here we loop over ppObservers */
+		HashTable *observersHt = Z_ARRVAL_PP(ppObservers);
+		for( zend_hash_internal_pointer_reset(observersHt);
+			 zend_hash_has_more_elements(observersHt) == SUCCESS;
+			 zend_hash_move_forward(observersHt) ) {
+			zval **ppObserver, *_mediator, *areNotifyContextsEqual;
+			ulong observer_index;
+
+			if(zend_hash_get_current_data(observersHt, (void**)&ppObserver)
+				== FAILURE) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+					"View::removeMediator(); failed reading Observer");
+				continue;
+			}
+			/* loop body */
+			/* retrieve the mediator given the supplied mediatorName */
+			zend_call_method_with_1_params(&this, this_ce, NULL,
+					"retrievemediator", &_mediator, mediatorName);
+
+			/* ask the Observer to compare the notify context */
+			zend_call_method_with_1_params(ppObserver,
+						zend_get_class_entry(*ppObserver), NULL,
+						"comparenotifycontext", &areNotifyContextsEqual,
+						_mediator);
+
+			if(Z_BVAL_P(areNotifyContextsEqual)) {
+//// TODO delete the observer (ppObserver)
+
+				if(zend_hash_num_elements(Z_ARRVAL_PP(ppObservers)) == 0) {
+//// TODO delete the observers (ppObservers)
+					break;
+				}
+			}
+		}
+		/* read the mediatorMap */
+		mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
+						strlen("mediatorMap"), 0 TSRMLS_CC);
+
+		/* find the mediator from the mediatorMap using the mediatorName */
+/// tmp is the mediator..
+		zend_hash_find(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
+				Z_STRLEN_P(mediatorName)+1, (void**)&tmp);
+
+		/* remove the meditar from the map */
+		zend_hash_del(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
+						Z_STRLEN_P(mediatorName));
+
+		/* notify the mediator its been removed */
+		if(Z_TYPE_PP(tmp) != IS_NULL) {
+			zend_call_method_with_0_params(*tmp, zend_get_class_entry(*tmp),
+					NULL, "onremove", NULL);
+		}
+		RETVAL_OBJECT(*tmp, 1);
+		return;
+	}
 }
 /* }}} */
 /* MacroCommand */
@@ -938,6 +1139,7 @@ PHP_METHOD(MacroCommand, execute)
 					sizeof("subCommands")-1, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(subCommandsVal) != IS_ARRAY) {
+//// TODO better error message here
 		php_error_docref(NULL TSRMLS_CC, E_WARNING,
 			"$this->subCommands is not an array");
 		RETURN_FALSE;
@@ -946,21 +1148,25 @@ PHP_METHOD(MacroCommand, execute)
 	/*  iterate over the subCommands calling the execute() method on
 	 *	instances of them we make; poping them off $subCommands as we go
 	 */
-	for( zend_hash_internal_pointer_reset(Z_ARRVAL_P(subCommandsVal));
-		 zend_hash_has_more_elements(Z_ARRVAL_P(subCommandsVal)) == SUCCESS;
-		 zend_hash_move_forward(Z_ARRVAL_P(subCommandsVal)) ) {
-			zval **ppzval;
-			ulong index;
+	HashTable *subCommandValHt = Z_ARRVAL_P(subCommandsVal);
+	for( zend_hash_internal_pointer_reset(subCommandValHt);
+		 zend_hash_has_more_elements(subCommandValHt) == SUCCESS;
+		 zend_hash_move_forward(subCommandValHt) ) {
+		zval **ppzval;
+		ulong index;
 
-			if(zend_hash_get_current_data(Z_ARRVAL_P(subCommandsVal), (void**)&ppzval)
-				== FAILURE) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-					"couldnt get current data");
-				continue;
-			}
+		if(zend_hash_get_current_data(subCommandValHt, (void**)&ppzval)
+			== FAILURE) {
+//// TODO better error message here
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"couldnt get current data");
+			continue;
+		}
+		/* loop body */
 		puremvc_execute_command_in_hash(ppzval, notification);
 	}
-	zend_hash_clean(Z_ARRVAL_P(subCommandsVal));
+	/* remove all elements from the subCommands array */
+	zend_hash_clean(subCommandValHt);
 
 	puremvc_log_func_io("MacroCommand", "execute", 0);
 }
