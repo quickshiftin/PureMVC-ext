@@ -831,7 +831,7 @@ PHP_METHOD(View, registerMediator)
 	HashTable *mMapHt;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
-		mediator) == FAILURE) {	
+		&mediator) == FAILURE) {	
 		return;
 	}
 
@@ -841,7 +841,7 @@ PHP_METHOD(View, registerMediator)
 	mediator_ce = zend_get_class_entry(mediator);
 
 	/* populate the mediatorName */
-	zend_call_method_with_0_params(&this, this_ce, NULL,
+	zend_call_method_with_0_params(&mediator, mediator_ce, NULL,
 			"getmediatorname", &mediatorName);
 
 	/* read the mediatorMap */
@@ -860,6 +860,7 @@ PHP_METHOD(View, registerMediator)
 	/* ask the mediator about notification interests */
 	zend_call_method_with_0_params(&mediator, mediator_ce,
 			NULL, "listnotificationinterests", &notificationInterests);
+
 
 	/* loop over interests, creating observers and registering them */
 	if(zend_hash_num_elements(Z_ARRVAL_P(notificationInterests)) > 0) {
@@ -1693,9 +1694,11 @@ PHP_METHOD(Mediator, __construct)
 {
 	zval *this, *mediatorName, *viewComponent = NULL, *facade, **tmp;
 	zend_class_entry *this_ce;
+	char *rawMediatorName;
+	int rawMediatorNameLength = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|o",
-		&mediatorName, &viewComponent) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|so",
+		&rawMediatorName, &rawMediatorNameLength, &viewComponent) == FAILURE) {
 		return;
 	}
 
@@ -1723,20 +1726,21 @@ PHP_METHOD(Mediator, __construct)
 			strlen("viewComponent"), viewComponent TSRMLS_CC);
 	}
 
-	/* potentially set the mediatorName */
-	if(Z_TYPE_P(mediatorName) == IS_NULL) {
+	/* set the mediatorName, potentially using the name provided by the base class */
+	if(rawMediatorNameLength == 0) {
 		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
 			(void**)&tmp) == FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"Mediator::__construct(), failed lookup on mediatorName!");
 			return;
 		}
-		zend_update_property(this_ce, this, "mediatorName",
-			strlen("mediatorName"), *tmp);
+		mediatorName = *tmp;
 	} else {
-		convert_to_string(mediatorName);
-
-		zend_update_property(this_ce, this, "mediatorName",
-			strlen("mediatorName"), mediatorName);
+		MAKE_STD_ZVAL(mediatorName);
+		ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 	}
+	zend_update_property(this_ce, this, "mediatorName",
+		strlen("mediatorName"), mediatorName);
 }
 /* }}} */
 /* {{{ proto public string Mediator::getMediatorName()
