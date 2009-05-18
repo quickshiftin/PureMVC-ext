@@ -6,6 +6,7 @@ coding
 	. make pure_mvc_call method support any number of arguments
 	. change misused sizeof() invocations to strlen() where applicable
 	. check on type hints for methods which did leverage them in the php port of pure_mvc
+	. need to fix type hints and default values across the board (see second arg for Mediator::__construct() for example)
 
 	lower priority
 	. try to limit use of pointers, eg. use zval this instead of zval *this

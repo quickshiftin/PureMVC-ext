@@ -1,13 +1,11 @@
 --TEST--
-see if the hasMediator method returns true, when we know the mediator has been registered
+run through the registerMediator flow and ensure we hit points wew're supposed to
 --FILE--
 <?php
 include(dirname(__FILE__) . '/../../testlib/include.php');
-MyView::showName();
 $view = MyView::getInstance();
 $view->registerMediator(new MyMediator());
+var_dump($view->hasMediator('Mediator'));
 ?>
 --EXPECT--
-MyMediator::listNotificationInterests
-notificationName: MyNotification
-MyMediator::onRegister
+bool(true)

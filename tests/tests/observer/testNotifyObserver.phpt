@@ -10,7 +10,7 @@ class Something {
 	}
 }
 $o = new Observer('notify', new Something());
-$o->notifyObserver(new MyNotification('testEvent'));
+$o->notifyObserver(new Notification('testEvent'));
 ?>
 --EXPECT--
-;lk;
+testEvent recieved

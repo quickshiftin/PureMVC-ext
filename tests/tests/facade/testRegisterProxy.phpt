@@ -3,6 +3,7 @@ ensure we can store a command via Facade::registerProxy
 --FILE--
 <?php
 include(dirname(__FILE__) . '/../../testlib/include.php');
-$f = Facade::getInstance();
+$f = MyFacade::getInstance();
 $f->registerProxy(new Proxy());
 --EXPECT--
+Proxy

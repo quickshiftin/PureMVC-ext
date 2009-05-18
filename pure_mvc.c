@@ -771,34 +771,35 @@ PHP_METHOD(View, notifyObservers)
 	HashTable *observersHt;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
-			notification) == FAILURE) {	
+			&notification) == FAILURE) {	
 		return;
 	}
+
+	/* setup this && this_ce */
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
 
 	/* read the observerMap from this instance */
 	observerMap = zend_read_property(this_ce, this, "observerMap",
 					strlen("observerMap"), 1 TSRMLS_CC);
 
 	/* get the name of the INotification instance */
-	zend_call_method_with_0_params(&this, this_ce, NULL,
+	zend_call_method_with_0_params(&notification, zend_get_class_entry(notification), NULL,
 				"getname", &notificationName); 
 
 	/* bail if there are no observers for this notification */
 	if(!zend_hash_exists(Z_ARRVAL_P(observerMap), Z_STRVAL_P(notificationName),
-			Z_STRLEN_P(notificationName))) {
+			Z_STRLEN_P(notificationName)+1)) {
 		return;
 	}
 
-	/* read the observers from the observerMap,
-	 * using notificationName as the key
-	 */
+	/* read the observers from the observerMap, using notificationName as the key */
 	zend_hash_find(Z_ARRVAL_P(observerMap), Z_STRVAL_P(notificationName),
 			Z_STRLEN_P(notificationName)+1, (void**)&observers);
-
 	/* iterate over the observers, notifying each one and supplying it w/
 	 * the INotification instance
 	 */
-	observersHt = Z_ARRVAL_P(observerMap);
+	observersHt = Z_ARRVAL_PP(observers);
 	for( zend_hash_internal_pointer_reset(observersHt);
 		zend_hash_has_more_elements(observersHt) == SUCCESS;
 		zend_hash_move_forward(observersHt) ) {
@@ -816,7 +817,7 @@ PHP_METHOD(View, notifyObservers)
 		 * INotificiation instance
 		 */
 		zend_call_method_with_1_params(ppObserver,
-				zend_get_class_entry(*ppObserver), NULL,
+				puremvc_observer_ce, NULL,
 				"notifyobserver", NULL, notification);
 	}
 }
@@ -1045,8 +1046,10 @@ PHP_METHOD(View, removeMediator)
 
 		/* notify the mediator its been removed */
 		if(Z_TYPE_PP(tmp) != IS_NULL) {
+/*
 			zend_call_method_with_0_params(*tmp, zend_get_class_entry(*tmp),
 					NULL, "onremove", NULL);
+*/
 		}
 		RETVAL_OBJECT(*tmp, 1);
 		return;
@@ -1456,13 +1459,10 @@ PHP_METHOD(Facade, registerProxy)
 	this = getThis();
 
 	model = zend_read_property(puremvc_facade_ce, this, "model",
-					sizeof("model")-1, 1 TSRMLS_CC);
+					strlen("model"), 1 TSRMLS_CC);
 
-	if(proxy == IS_NULL)
-		return;
-
-	zend_call_method_with_1_params(&model, puremvc_model_ce, NULL, "registerproxy",
-			NULL, proxy);
+	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
+			"registerproxy", NULL, proxy);
 }
 /* }}} */
 /* {{{ proto public final mixed Facade::retrieveProxy(string proxyName)
@@ -1470,7 +1470,7 @@ PHP_METHOD(Facade, registerProxy)
     */ 
 PHP_METHOD(Facade, retrieveProxy)
 {
-	zval *this, *proxyName, *model;
+	zval *this, *proxyName, *model, *returnValue;
 	char *rawProxyName;
 	int rawProxyNameLength;
 
@@ -1484,10 +1484,12 @@ PHP_METHOD(Facade, retrieveProxy)
 
 	this = getThis();
 	model = zend_read_property(zend_get_class_entry(this), this, "model",
-				sizeof("model")-1, 1 TSRMLS_CC);
+				strlen("model"), 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
-			"retrieveproxy", &return_value, proxyName);
+			"retrieveproxy", &returnValue, proxyName);
+
+	RETVAL_OBJECT(returnValue, 1);
 }
 /* }}} */
 /* {{{ proto public final boolean Facade::hasProxy(string proxyName)
@@ -1554,11 +1556,10 @@ PHP_METHOD(Facade, registerMediator)
 
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
-				sizeof("view")-1, 1 TSRMLS_CC);
-/*
-	zend_call_method_with_1_params(&view, puremvc_view_ce, NULL, "registermediator",
-			NULL, mediator);
-*/
+				strlen("view"), 1 TSRMLS_CC);
+
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+			"registermediator", NULL, mediator);
 }
 /* }}} */
 /* {{{ proto public final mixed Facade::retrieveMediator(string mediatorName)
@@ -1731,7 +1732,7 @@ PHP_METHOD(Mediator, __construct)
 		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
 			(void**)&tmp) == FAILURE) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING,
-				"Mediator::__construct(), failed lookup on mediatorName!");
+				"failed lookup on mediatorName!");
 			return;
 		}
 		mediatorName = *tmp;
@@ -2120,8 +2121,8 @@ PHP_METHOD(Observer, getNotifyContext)
 		notify this observer with the given INotification */
 PHP_METHOD(Observer, notifyObserver)
 {
-	zval *this, *notifyMethod, *notifyContext, *context, *notification;
-	zend_class_entry *this_ce;
+	zval *this, *notifyMethod, *notifyContext, *notification;
+	char *rawNotifyMethod;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
 			&notification) == FAILURE) {
@@ -2129,15 +2130,24 @@ PHP_METHOD(Observer, notifyObserver)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
 
-	zend_call_method_with_0_params(&this, this_ce, NULL,
+	/* populate notifyMethod */
+	zend_call_method_with_0_params(&this, puremvc_observer_ce, NULL,
 			"getnotifymethod", &notifyMethod);
-	zend_call_method_with_0_params(&this, this_ce, NULL,
+	/* since userspace can define the method, we have to strtolower() it here */
+	php_strtolower(Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod));
+
+	/* populate notifyContext */
+	zend_call_method_with_0_params(&this, puremvc_observer_ce, NULL,
 			"getnotifycontext", &notifyContext);
 
-	zend_call_method_with_1_params(&context, zend_get_class_entry(context), NULL,
-			Z_STRVAL_P(notifyMethod), NULL, notification);
+	/* call the notificationMethod on this context, passing it the
+	 * INotification instance
+	 */
+//// TODO verify the notifyMethod exists on $this->context before calling it..
+//// @note, had to use zend_call_method directly here to use strlen() rather than sizeof()
+	zend_call_method(&notifyContext, zend_get_class_entry(notifyContext), NULL,
+			Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod), NULL, 1, notification, NULL TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public bool Observer::compareByContext(object object)
@@ -2151,10 +2161,11 @@ PHP_METHOD(Observer, compareNotifyContext)
 		return;
 	}
 
+	this = getThis();
 	context = zend_read_property(zend_get_class_entry(this), this,
-					"context", sizeof("context")-1, 1 TSRMLS_CC);
+					"context", strlen("context"), 1 TSRMLS_CC);
 
-	if(Z_OBJHANDLE_P(context) == Z_OBJHANDLE_P(object)) {
+	if(Z_OBJ_HANDLE_P(context) == Z_OBJ_HANDLE_P(object)) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -2168,44 +2179,49 @@ PHP_METHOD(Proxy, __construct)
 {
 	zval *this, *proxyName, *data = NULL, *facade, **tmp;
 	zend_class_entry *this_ce;
+	char *rawProxyName;
+	int rawProxyNameLength = 0;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|o",
-		&proxyName, &data) == FAILURE) {
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|so",
+		&rawProxyName, &rawProxyNameLength, &data) == FAILURE) {
 		return;
 	}
 
+	/* get facade instance */
 	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
 			"getinstance", &facade);
 
+	/* setup this && this_ce */
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 
+	/* store a reference to facade in this instance */
 	zend_update_property(this_ce, this, "facade",
 			strlen("facade"), facade TSRMLS_CC);
 
-	if(!data) {
+	/* set the mediator name, potentially using a constant value from the base class */
+	if(rawProxyNameLength == 0) {
+		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
+			(void**)&tmp) == FAILURE) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"failed lookup on proxyName!");
+			return;
+		}
+		proxyName = *tmp;
+	} else {
+		MAKE_STD_ZVAL(proxyName);
+		ZVAL_STRINGL(proxyName, rawProxyName, rawProxyNameLength, 1);
+	}
+	zend_update_property(this_ce, this, "proxyName",
+		strlen("proxyName"), proxyName);
+
+	/* set data to a zval containing null, if one wasnt provided */
+	if(!data || Z_TYPE_P(data) == IS_NULL) {
 		MAKE_STD_ZVAL(data);
 		ZVAL_NULL(data);
 	}
-
-	if(data != NULL) {
-		zend_update_property(this_ce, this, "data",
-			strlen("data"), data TSRMLS_CC);
-	}
-
-	if(Z_TYPE_P(proxyName) == IS_NULL) {
-		if(zend_hash_find(&this_ce->constants_table, "NAME", strlen("NAME")+1,
-			(void**)&tmp) == FAILURE) {
-			return;
-		}
-		zend_update_property(this_ce, this, "proxyName",
-			strlen("proxyName"), *tmp);
-	} else {
-		convert_to_string(proxyName);
-
-		zend_update_property(this_ce, this, "proxyName",
-			strlen("proxyName"), proxyName);
-	}
+	zend_update_property(this_ce, this, "data",
+		strlen("data"), data TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public string getProxyName()
@@ -2445,7 +2461,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_setNotifyContext, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_notifyObserver, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+//// ANOTHER ZEND_ARG_OBJ_INFO ISSUE..
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+		ZEND_ARG_INFO(0, notification)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_iobserver_compareNotifyContent, 0, 0, 1)
@@ -2454,6 +2472,7 @@ ZEND_END_ARG_INFO()
 static function_entry puremvc_observer_iface_methods[] = {
 	PHP_ABSTRACT_ME(IObserver, setNotifyMethod, arginfo_iobserver_setNotifyMethod)
 	PHP_ABSTRACT_ME(IObserver, setNotifyContext, arginfo_iobserver_setNotifyContext)
+	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_iobserver_notifyObserver)
 	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_iobserver_notifyObserver)
 	PHP_ABSTRACT_ME(IObserver, compareNotifyContext, arginfo_iobserver_compareNotifyContent)
 	{ NULL, NULL, NULL }
@@ -2867,7 +2886,8 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_setNotifyContext, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_notifyObserver, 0, 0, 1)
-	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
+	ZEND_ARG_INFO(0, notification)
+////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_observer_compareNotifyContext, 0, 0, 1)
 	ZEND_ARG_INFO(0, object)

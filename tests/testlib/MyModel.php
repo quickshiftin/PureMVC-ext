@@ -16,7 +16,6 @@ class MyModel extends Model {
 		if(self::$shouldUseMyProxy) {
 			$p = new MyProxy();
 			$this->proxyMap[$p->getProxyName()] = $p;
-			var_dump($this);
 		}
 	}
 
@@ -24,11 +23,17 @@ class MyModel extends Model {
 		echo $notificationName . PHP_EOL;
 	}
 
+/*
+	public function retrieveProxy($proxyName) {
+		echo $proxyName . PHP_EOL;
+		return parent::retrieveProxy($proxyName);
+	}
+*/
 	public function registerProxy($proxy) {
-		var_dump($proxy);
+		echo get_class($proxy) . PHP_EOL;
 	}
 
-	public function removeProxy($notificationName) {
-		echo $notificationName . PHP_EOL;
+	public function removeProxy($proxyName) {
+		echo $proxyName . PHP_EOL;
 	}
 }

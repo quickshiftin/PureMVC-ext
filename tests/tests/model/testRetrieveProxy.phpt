@@ -6,25 +6,7 @@ include(dirname(__FILE__) . '/../../testlib/include.php');
 MyProxy::disableBlabOnRegister();
 MyModel::useMyProxy();
 $m = MyModel::getInstance();
-var_dump($m);
-var_dump($m->retrieveProxy('testProxy'));
+echo get_class($m->retrieveProxy('testProxy'));
 ?>
 --EXPECT--
-object(MyModel)#1 (1) {
-  ["proxyMap:protected"]=>
-  array(1) {
-    ["testProxy"]=>
-    object(MyProxy)#2 (0) {
-    }
-  }
-}
-object(MyModel)#1 (1) {
-  ["proxyMap:protected"]=>
-  array(1) {
-    ["testProxy"]=>
-    object(MyProxy)#2 (0) {
-    }
-  }
-}
-object(MyProxy)#2 (0) {
-}
+MyProxy

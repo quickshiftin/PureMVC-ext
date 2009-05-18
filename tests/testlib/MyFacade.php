@@ -12,6 +12,14 @@ class MyFacade extends Facade {
 		self::$shouldCallParentAndEcho = true;
 	}
 
+	public function registerProxy($proxy) {
+		return parent::registerProxy($proxy);
+	}
+
+	public function registerMediator($mediator) {
+		return parent::registerMediator($mediator);
+	}
+
 	protected function initializeFacade() {
 		if(self::$shouldCallParentAndEcho) {
 			parent::initializeFacade();
@@ -51,6 +59,6 @@ class MyFacade extends Facade {
 	}
 
 	public function notifyObservers($notification) {
-		var_dump($notification);
+		return parent::notifyObservers($notification);
 	}
 }

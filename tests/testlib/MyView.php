@@ -17,14 +17,19 @@ class MyView extends View {
 		self::$showName = true;
 	}
 
+	public function getObserver() {
+		return $this->observerMap['MyNotification'][0];
+	}
+
 	public function hasMediator($notificationName) {
-		echo $notificationName . PHP_EOL;
+		if(self::$isVerbose)
+			echo $notificationName . PHP_EOL;
 		return parent::hasMediator($notificationName);
 	}
 
 	public function registerMediator($mediator) {
 		if(self::$isVerbose)
-			var_dump($mediator);
+			echo get_class($mediator) . PHP_EOL;
 		return parent::registerMediator($mediator);
 	}
 
@@ -36,18 +41,21 @@ class MyView extends View {
 		parent::registerObserver($notificationName, $observer);
 	}
 
-	public function retrieveMediator($notificationName) {
-		echo $notificationName . PHP_EOL;
-		return parent::retrieveMediator($notificationName);
+	public function retrieveMediator($mediatorName) {
+		if(self::$isVerbose)
+			echo $mediatorName . PHP_EOL;
+		return parent::retrieveMediator($mediatorName);
 	}
 
-	public function removeMediator($notificationName) {
-		echo $notificationName . PHP_EOL;
-		return parent::removeMediator($notificationName);
+	public function removeMediator($mediatorName) {
+		if(self::$isVerbose)
+			echo $mediatorName . PHP_EOL;
+		return parent::removeMediator($mediatorName);
 	}
 
 	public function notifyObservers($inotification) {
-		echo get_class($inotification) . PHP_EOL;
+		if(self::$isVerbose)
+			echo get_class($inotification) . PHP_EOL;
 		return parent::notifyObservers($inotification);
 	}
 }
