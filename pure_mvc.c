@@ -53,6 +53,9 @@ zend_class_entry *puremvc_simplecommand_ce;
 zend_class_entry *puremvc_proxy_ce;
 
 
+/* a small re-implementation of zend_call_method, which adds support for an optional number of arguments, w/o using va_list
+ * it simply accepts an array of zvals, where each zval reprezents a successive argument
+ */
 zval* puremvc_call_method_multi_param(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval **params[] TSRMLS_DC)
 {
 	int result;
@@ -161,7 +164,9 @@ void puremvc_log_func_io(char *classname, char *methodname, int isStart)
 	}
 }
 
-//// TODO a method to destroy an instance of the struct..
+/* initialize an instance of a puremvc_iteration_info struct
+ * using values provided
+ */
 puremvc_iteration_info* create_puremvc_iteration_info(zval *view, zval *mediatorName) {
 	puremvc_iteration_info *_it_info;
 	_it_info = pemalloc(sizeof(puremvc_iteration_info), 0);
@@ -170,7 +175,10 @@ puremvc_iteration_info* create_puremvc_iteration_info(zval *view, zval *mediator
 	return _it_info;
 }
 
-int puremvc_remove_mediator_iteration(zval **val, puremvc_iteration_info *arg TSRMLS_DC) {
+/* iterate over an array of observers that is part of the View observerMap array, which
+ * is indexed by notificationName
+ */
+int puremvc_view_iterate_observers(zval **val, puremvc_iteration_info *arg TSRMLS_DC) {
 	zval *areNotifyContextsEqual, *mediator;
 
 	zval *view, *observer;
@@ -194,12 +202,15 @@ int puremvc_remove_mediator_iteration(zval **val, puremvc_iteration_info *arg TS
 	return ZEND_HASH_APPLY_KEEP;
 } 
 
+/* iterate over the observerMap, for any arrays of observers stored therein, loop over said
+ * array potentially deleting observers
+ */
 int puremvc_view_iterate_observerMap(zval **observers, puremvc_iteration_info *arg TSRMLS_DC) {
 	HashTable *observers_arr = Z_ARRVAL_P(*observers);
 
 	/* iteratre over the observers, potentially deleting some/all of them */
 	zend_hash_apply_with_argument(observers_arr,
-				(apply_func_arg_t)puremvc_remove_mediator_iteration, arg TSRMLS_CC);
+				(apply_func_arg_t)puremvc_view_iterate_observers, arg TSRMLS_CC);
 
 	/* delete the observers array if now empty */
 	if(zend_hash_num_elements(observers_arr) == 0) {
@@ -1039,12 +1050,13 @@ PHP_METHOD(View, removeMediator)
 
 	/* put together the arginfo for the callback */
 	puremvc_iteration_info *arginfo;
-//// TODO destroy this struct instance..
 	arginfo = create_puremvc_iteration_info(this, mediatorName);
 
 	/* iterate over the observerMap */
 	zend_hash_apply_with_argument(observerMapHt, (apply_func_arg_t)puremvc_view_iterate_observerMap,
 									arginfo TSRMLS_CC);
+	/* free mem for arginfo */
+	efree(arginfo);
 
 	/* read the mediatorMap */
 	mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
@@ -1056,6 +1068,9 @@ PHP_METHOD(View, removeMediator)
 	zend_hash_find(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
 			Z_STRLEN_P(mediatorName)+1, (void**)&tmp);
 
+	/* separate the zval and add a ref so it doesnt dissapear when we remove
+	 * the key from the array, and so that we still have something we can return
+	 */
 	mediator = *tmp;
 	SEPARATE_ZVAL(&mediator);
 	ZVAL_ADDREF(mediator);
