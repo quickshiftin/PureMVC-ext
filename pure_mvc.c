@@ -27,6 +27,32 @@
 #include "ext/standard/info.h"
 #include "php_pure_mvc.h"
 
+/* interfaces */
+zend_class_entry *puremvc_command_iface_entry;
+zend_class_entry *puremvc_controller_iface_entry;
+zend_class_entry *puremvc_facade_iface_entry;
+zend_class_entry *puremvc_mediator_iface_entry;
+zend_class_entry *puremvc_model_iface_entry;
+zend_class_entry *puremvc_notification_iface_entry;
+zend_class_entry *puremvc_notifier_iface_entry;
+zend_class_entry *puremvc_observer_iface_entry;
+zend_class_entry *puremvc_proxy_iface_entry;
+zend_class_entry *puremvc_view_iface_entry;
+/* core - classes */
+zend_class_entry *puremvc_controller_ce;
+zend_class_entry *puremvc_model_ce;
+zend_class_entry *puremvc_view_ce;
+/* pattern - classes */
+zend_class_entry *puremvc_notification_ce;
+zend_class_entry *puremvc_notifier_ce;
+zend_class_entry *puremvc_observer_ce;
+zend_class_entry *puremvc_facade_ce;
+zend_class_entry *puremvc_mediator_ce;
+zend_class_entry *puremvc_macrocommand_ce;
+zend_class_entry *puremvc_simplecommand_ce;
+zend_class_entry *puremvc_proxy_ce;
+
+
 zval* puremvc_call_method_multi_param(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval **params[] TSRMLS_DC)
 {
 	int result;
@@ -135,6 +161,53 @@ void puremvc_log_func_io(char *classname, char *methodname, int isStart)
 	}
 }
 
+//// TODO a method to destroy an instance of the struct..
+puremvc_iteration_info* create_puremvc_iteration_info(zval *view, zval *mediatorName) {
+	puremvc_iteration_info *_it_info;
+	_it_info = pemalloc(sizeof(puremvc_iteration_info), 0);
+	_it_info->view = view;
+	_it_info->mediatorName = mediatorName;
+	return _it_info;
+}
+
+int puremvc_remove_mediator_iteration(zval **val, puremvc_iteration_info *arg TSRMLS_DC) {
+	zval *areNotifyContextsEqual, *mediator;
+
+	zval *view, *observer;
+	view = arg->view;
+
+	/* retrieve the mediator given the supplied mediatorName */
+	zend_call_method_with_1_params(&view,
+			zend_get_class_entry(view), NULL,
+			"retrievemediator", &mediator, arg->mediatorName);
+
+	/* ask the Observer to compare the notify context */
+	zend_call_method_with_1_params(val,
+			puremvc_observer_ce, NULL,
+			"comparenotifycontext", &areNotifyContextsEqual,
+			mediator);
+
+	/* potentially delete the observer */
+	if(Z_BVAL_P(areNotifyContextsEqual)) {
+		return ZEND_HASH_APPLY_REMOVE;
+	}
+	return ZEND_HASH_APPLY_KEEP;
+} 
+
+int puremvc_view_iterate_observerMap(zval **observers, puremvc_iteration_info *arg TSRMLS_DC) {
+	HashTable *observers_arr = Z_ARRVAL_P(*observers);
+
+	/* iteratre over the observers, potentially deleting some/all of them */
+	zend_hash_apply_with_argument(observers_arr,
+				(apply_func_arg_t)puremvc_remove_mediator_iteration, arg TSRMLS_CC);
+
+	/* delete the observers array if now empty */
+	if(zend_hash_num_elements(observers_arr) == 0) {
+		return ZEND_HASH_APPLY_REMOVE;
+	}
+	return ZEND_HASH_APPLY_KEEP;
+}
+
 /* @param zval **val string name of class to instantiate
  * @param zval *notification INotification instance to pass to execute()
  *
@@ -195,32 +268,6 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 /* If you declare any globals in php_pure_mvc.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(pure_mvc)
 */
-
-/* interfaces */
-zend_class_entry *puremvc_command_iface_entry;
-zend_class_entry *puremvc_controller_iface_entry;
-zend_class_entry *puremvc_facade_iface_entry;
-zend_class_entry *puremvc_mediator_iface_entry;
-zend_class_entry *puremvc_model_iface_entry;
-zend_class_entry *puremvc_notification_iface_entry;
-zend_class_entry *puremvc_notifier_iface_entry;
-zend_class_entry *puremvc_observer_iface_entry;
-zend_class_entry *puremvc_proxy_iface_entry;
-zend_class_entry *puremvc_view_iface_entry;
-/* core - classes */
-zend_class_entry *puremvc_controller_ce;
-zend_class_entry *puremvc_model_ce;
-zend_class_entry *puremvc_view_ce;
-/* pattern - classes */
-zend_class_entry *puremvc_notification_ce;
-zend_class_entry *puremvc_notifier_ce;
-zend_class_entry *puremvc_observer_ce;
-zend_class_entry *puremvc_facade_ce;
-zend_class_entry *puremvc_mediator_ce;
-zend_class_entry *puremvc_macrocommand_ce;
-zend_class_entry *puremvc_simplecommand_ce;
-zend_class_entry *puremvc_proxy_ce;
-
 
 /* True global resources - no need for thread safety here */
 static int le_pure_mvc;
@@ -806,6 +853,7 @@ PHP_METHOD(View, notifyObservers)
 		zval **ppObserver;
 		ulong index;
 
+//// TODO zend_hash_get_current_data_ex & use index..
 		if(zend_hash_get_current_data(observersHt, (void**)&ppObserver)
 			== FAILURE) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING,
@@ -890,6 +938,7 @@ PHP_METHOD(View, registerMediator)
 			zval **ppinterest;
 			ulong index;
 
+//// TODO zend_hash_get_current_data_ex & use index..
 			if(zend_hash_get_current_data(interestsHt, (void**)&ppinterest)
 				== FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,
@@ -975,6 +1024,9 @@ PHP_METHOD(View, removeMediator)
 		return;
 	}
 
+	this = getThis();
+	this_ce = zend_get_class_entry(this);
+
 	MAKE_STD_ZVAL(mediatorName);
 	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 
@@ -984,76 +1036,41 @@ PHP_METHOD(View, removeMediator)
 
 	/* iterate over the observers in the map */
 	observerMapHt = Z_ARRVAL_P(observerMap);
-	for( zend_hash_internal_pointer_reset(observerMapHt);
-		 zend_hash_has_more_elements(observerMapHt) == SUCCESS;
-		 zend_hash_move_forward(observerMapHt) ) {
-		zval **ppObservers;
-		ulong observers_index;
 
-		if(zend_hash_get_current_data(observerMapHt, (void**)&ppObservers)
-			== FAILURE) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING,
-				"View::removeMediator(); failed reading Observers");
-			continue;
-		}
-		/* loop body */
-		/* here we loop over ppObservers */
-		HashTable *observersHt = Z_ARRVAL_PP(ppObservers);
-		for( zend_hash_internal_pointer_reset(observersHt);
-			 zend_hash_has_more_elements(observersHt) == SUCCESS;
-			 zend_hash_move_forward(observersHt) ) {
-			zval **ppObserver, *_mediator, *areNotifyContextsEqual;
-			ulong observer_index;
+	/* put together the arginfo for the callback */
+	puremvc_iteration_info *arginfo;
+//// TODO destroy this struct instance..
+	arginfo = create_puremvc_iteration_info(this, mediatorName);
 
-			if(zend_hash_get_current_data(observersHt, (void**)&ppObserver)
-				== FAILURE) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-					"View::removeMediator(); failed reading Observer");
-				continue;
-			}
-			/* loop body */
-			/* retrieve the mediator given the supplied mediatorName */
-			zend_call_method_with_1_params(&this, this_ce, NULL,
-					"retrievemediator", &_mediator, mediatorName);
+	/* iterate over the observerMap */
+	zend_hash_apply_with_argument(observerMapHt, (apply_func_arg_t)puremvc_view_iterate_observerMap,
+									arginfo TSRMLS_CC);
 
-			/* ask the Observer to compare the notify context */
-			zend_call_method_with_1_params(ppObserver,
-						zend_get_class_entry(*ppObserver), NULL,
-						"comparenotifycontext", &areNotifyContextsEqual,
-						_mediator);
+	/* read the mediatorMap */
+	mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
+					strlen("mediatorMap"), 0 TSRMLS_CC);
 
-			if(Z_BVAL_P(areNotifyContextsEqual)) {
-//// TODO delete the observer (ppObserver)
+	/* find the mediator from the mediatorMap using the mediatorName
+	 * @note tmp is the mediator.. 
+	 */
+	zend_hash_find(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
+			Z_STRLEN_P(mediatorName)+1, (void**)&tmp);
 
-				if(zend_hash_num_elements(Z_ARRVAL_PP(ppObservers)) == 0) {
-//// TODO delete the observers (ppObservers)
-					break;
-				}
-			}
-		}
-		/* read the mediatorMap */
-		mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
-						strlen("mediatorMap"), 0 TSRMLS_CC);
+	mediator = *tmp;
+	SEPARATE_ZVAL(&mediator);
+	ZVAL_ADDREF(mediator);
 
-		/* find the mediator from the mediatorMap using the mediatorName */
-/// tmp is the mediator..
-		zend_hash_find(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
-				Z_STRLEN_P(mediatorName)+1, (void**)&tmp);
+	/* remove the mediator from the map using mediatorName as the key */
+	zend_hash_del(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
+					Z_STRLEN_P(mediatorName)+1);
 
-		/* remove the meditar from the map */
-		zend_hash_del(Z_ARRVAL_P(mediatorMap), Z_STRVAL_P(mediatorName),
-						Z_STRLEN_P(mediatorName));
-
-		/* notify the mediator its been removed */
-		if(Z_TYPE_PP(tmp) != IS_NULL) {
-/*
-			zend_call_method_with_0_params(*tmp, zend_get_class_entry(*tmp),
-					NULL, "onremove", NULL);
-*/
-		}
-		RETVAL_OBJECT(*tmp, 1);
-		return;
+	/* notify the mediator its been removed */
+	if(Z_TYPE_P(mediator) != IS_NULL) {
+		zend_call_method_with_0_params(&mediator, zend_get_class_entry(mediator),
+				NULL, "onremove", NULL);
 	}
+
+	RETURN_OBJECT(mediator, 1);
 }
 /* }}} */
 /* MacroCommand */
@@ -1081,7 +1098,7 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
 			"initializemacrocommand", NULL);
 
-/*  the puremvc php code doesnt call the parent constructor,
+/*  TODO the puremvc php code doesnt call the parent constructor,
 	but its something that may merit a question on the mailin list / forum
 /////
 	zend_call_method_with_0_params(&this, puremvc_notifier_ce, NULL,

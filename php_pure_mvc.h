@@ -39,6 +39,15 @@ extern zend_module_entry pure_mvc_module_entry;
 #include "zend_interfaces.h"
 #include "ext/standard/php_smart_str.h"
 
+/* 	a custom container for hash iteration via zend_hash_aply
+ *	which allows the callback function to get the data it needs
+ *	to determine if a deletion should be performed
+ */
+typedef struct _puremvc_iteration_info {
+	zval *view;			/* ref to the view */
+	zval *mediatorName;	/* name of the mediator */
+} puremvc_iteration_info;
+
 /* return object(values) */
 /* jacked from http ext.. */
 #define RETVAL_OBJECT(o, addref) \
