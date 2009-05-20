@@ -2333,9 +2333,7 @@ PHP_METHOD(Proxy, onRemove)
 /* ICommand */
 static
 ZEND_BEGIN_ARG_INFO(arginfo_command_execute, 0)
-//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
-////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
-	ZEND_ARG_INFO(0, notification)
+	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
 ZEND_END_ARG_INFO();
 static
 function_entry puremvc_command_iface_methods [] = {
@@ -2539,6 +2537,11 @@ static function_entry puremvc_proxy_iface_methods[] = {
 };
 /* IView */
 static
+ZEND_BEGIN_ARG_INFO_EX(arginfo_iview_registerObserver, 0, 0, 2)
+	ZEND_ARG_INFO(0, notificationName)
+	ZEND_ARG_OBJ_INFO(0, observer, IObserver, 0)
+ZEND_END_ARG_INFO()
+static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_iview_notifyObservers, 0, 0, 1)
 	ZEND_ARG_INFO(0, note)
 ZEND_END_ARG_INFO()
@@ -2559,6 +2562,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_iview_hasMediator, 0, 0, 1)
 	ZEND_ARG_INFO(0, "mediatorName")
 ZEND_END_ARG_INFO()
 static function_entry puremvc_view_iface_methods[] = {
+	PHP_ABSTRACT_ME(IView, registerObserver, arginfo_iview_registerObserver)
 	PHP_ABSTRACT_ME(IView, notifyObservers, arginfo_iview_notifyObservers)
 	PHP_ABSTRACT_ME(IView, registerMediator, arginfo_iview_registerMediator)
 	PHP_ABSTRACT_ME(IView, retrieveMediator, arginfo_iview_retrieveMediator)
@@ -2641,10 +2645,8 @@ void puremvc_model_addprops(zend_class_entry *model_ce TSRMLS_DC)
 /* View */
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_registerObserver, 0, 0, 2)
-//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
-////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
 	ZEND_ARG_INFO(0, notificationName)
-	//ZEND_ARG_OBJ_INFO(0, "observer", "IObserver", 0)
+	ZEND_ARG_OBJ_INFO(0, observer, IObserver, 0)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_view_notifyObservers, 0, 0 , 1)
@@ -2695,14 +2697,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_addSubCommand, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_macrocommand_execute, 0, 0, 1)
-//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
-////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
-	ZEND_ARG_INFO(0, notification)
+	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_macrocommand_class_methods[] = {
 	PHP_ME(MacroCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
 	PHP_ME(MacroCommand, initializeMacroCommand, NULL, ZEND_ACC_PROTECTED)
 	PHP_ME(MacroCommand, addSubCommand, arginfo_macrocommand_addSubCommand, ZEND_ACC_PROTECTED)
+//// TODO whats this \/ ??
 	//PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC | ZEND_ACC_FINAL)
 	PHP_ME(MacroCommand, execute, arginfo_macrocommand_execute, ZEND_ACC_PUBLIC )
 	{ NULL, NULL, NULL }
@@ -2715,9 +2716,7 @@ void puremvc_macrocommand_addprops(zend_class_entry *macrocommand_ce TSRMLS_DC)
 }
 /* SimpleCommand */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_simplecommand_execute, 0, 0, 1)
-//// @TODO does ZEND_ARG_OBJ_INFO not support interfaces / subclasses ?
-////	ZEND_ARG_OBJ_INFO(0, "notification", "INotification", 0)
-	ZEND_ARG_INFO(0, notification)
+	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_simplecommand_class_methods[] = {
 	PHP_ME(SimpleCommand, __construct, NULL, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)

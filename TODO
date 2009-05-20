@@ -3,9 +3,6 @@ coding
 	. check all zend_class_entry* references, make sure we should be using puremvc_*_ce instead of zend_get_class_entry(getThis())
 	. make logging method a macro so it doesnt slow shit down at runtime
 	. go through and religiously add zval_dtor() calls & the like where applicable
-	. make pure_mvc_call method support any number of arguments
-	. change misused sizeof() invocations to strlen() where applicable
-	. check on type hints for methods which did leverage them in the php port of pure_mvc
 	. need to fix type hints and default values across the board (see second arg for Mediator::__construct() for example)
 
 	lower priority

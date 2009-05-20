@@ -1,6 +1,6 @@
 <?php
 class MySimpleCommand extends SimpleCommand {
-	public function execute($notification) {
+	public function execute(INotification $notification) {
 		echo $notification->getName();
 	}
 }
