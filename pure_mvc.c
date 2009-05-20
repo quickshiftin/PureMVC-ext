@@ -1,21 +1,38 @@
 /*
-  +----------------------------------------------------------------------+
-  | PHP Version 5                                                        |
-  +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2007 The PHP Group                                |
-  +----------------------------------------------------------------------+
-  | This source file is subject to version 3.01 of the PHP license,      |
-  | that is bundled with this package in the file LICENSE, and is        |
-  | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
-  | If you did not receive a copy of the PHP license and are unable to   |
-  | obtain it through the world-wide-web, please send a note to          |
-  | license@php.net so we can mail you a copy immediately.               |
-  +----------------------------------------------------------------------+
-  | Author: Nathan Nobbe                                                 |
-  +----------------------------------------------------------------------+
-*/
+	----------------------------------------------------------------------------------
+	This software is a natvie port of PureMVC for PHP5
 
+	The PureMVC Manifold is a free, open-source software project created and
+	maintained by Futurescale, Inc. Copyright © 2006-08, Some rights reserved.
+
+	Copyrighte(c) 2009, Nathan Nobbe 
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without modification,
+	are permitted provided that the following conditions are met:
+
+		* Redistributions of source code must retain the above copyright notice,
+			this list of conditions and the following disclaimer.
+		* Redistributions in binary form must reproduce the above copyright notice,
+			this list of conditions and the following disclaimer in the documentation
+			and/or other materials provided with the distribution.
+		* Neither the name of the Nathan Nobbe nor the names of its contributors
+			may be used to endorse or promote products derived from this software
+			without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+	AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+	IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+	ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+	LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+	THE POSSIBILITY OF SUCH DAMAGE.
+	----------------------------------------------------------------------------------
+*/
 /* $Id: header,v 1.16.2.1.2.1 2007/01/01 19:32:09 iliaa Exp $ */
 
 #ifdef HAVE_CONFIG_H
@@ -231,22 +248,19 @@ int puremvc_view_iterate_observerMap(zval **observers, puremvc_iteration_info *a
  */
 int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 {
-	zval tmpcpy, *subCommandInstance, *return_value;
+	zval *tmpcpy, *subCommandInstance, *return_value;
 	zend_class_entry **ce, *ze_p;
 
-	//// @TODO: use SEPARATE_ZVAL HERE
-	tmpcpy  = **val;
-	zval_copy_ctor(&tmpcpy);
-	INIT_PZVAL(&tmpcpy);
-	convert_to_string(&tmpcpy);
+	tmpcpy  = *val;
+	SEPARATE_ZVAL(&tmpcpy);
 
 	php_strtolower(Z_STRVAL_PP(val), Z_STRLEN_PP(val));
 
-	if(zend_lookup_class(Z_STRVAL(tmpcpy), Z_STRLEN(tmpcpy),
+	if(zend_lookup_class(Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy),
 		&ce TSRMLS_CC)  == FAILURE) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE,
 		"pure_mvc-internal: Class [%s] does not exist.", Z_STRVAL_PP(val));
-//		zend_dtor(&tmpcpy);
+		zval_dtor(tmpcpy);
 		RETURN_FALSE;
 	} else {
 		ze_p = *ce;
@@ -264,7 +278,6 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to find \
 			constructor for alleged class [%s]\n", ze_p->name);
 	}
-	//zval_dtor(&tmpcpy);
 
 	// attempt to call the execute() method 
 	if(zend_hash_exists(&ze_p->function_table,
@@ -272,8 +285,8 @@ int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 		zend_call_method_with_1_params(&subCommandInstance, *ce, NULL,
 			"execute", NULL, notification);
 	}
-	//zval_dtor(&tmpcpy);
-	//zval_dtor(subCommandInstance);
+	zval_dtor(tmpcpy);
+
 	return SUCCESS;
 }
 /* If you declare any globals in php_pure_mvc.h uncomment this:
@@ -298,7 +311,7 @@ PHP_METHOD(Controller, __construct)
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 	zend_update_property(this_ce, this, "commandMap",
-		sizeof("commandMap")-1, commandMap TSRMLS_CC);
+		10, commandMap TSRMLS_CC);
 
 	zend_call_method_with_0_params(&this, this_ce, NULL,
 			"initializecontroller", NULL);
@@ -320,7 +333,7 @@ PHP_METHOD(Controller, initializeController)
 				"getinstance", &view);
 
 	zend_update_property(zend_get_class_entry(this), this,
-		"view", sizeof("view")-1, view TSRMLS_CC);
+		"view", 4, view TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public object Controller::getInstance()
@@ -332,14 +345,14 @@ PHP_METHOD(Controller, getInstance)
 	puremvc_log_func_io("Controller", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_controller_ce, "instance",
-					sizeof("instance")-1, 1 TSRMLS_CC);
+					8, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_controller_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_controller_ce, NULL,
 				"__construct", NULL);
 		ZVAL_ADDREF(return_value);
-		zend_update_static_property(puremvc_controller_ce, "instance", sizeof("instance")-1,
+		zend_update_static_property(puremvc_controller_ce, "instance", 8,
 				return_value TSRMLS_CC);
 	} else {
 		RETVAL_OBJECT(instance, 1);
@@ -378,7 +391,7 @@ PHP_METHOD(Controller, executeCommand)
 				"getname", &notificationName);
 
 
-	/* TODO: LOOK IN $this->commandMap for notificationName */
+/* TODO: LOOK IN this_ce for notificationName */
 	zend_call_method_with_1_params(&this, this_ce, NULL,
 			"hascommand", &hasCommand, notificationName);
 
@@ -545,7 +558,7 @@ PHP_METHOD(Model, __construct)
 	this_ce = zend_get_class_entry(this);
 
 	zend_update_property(this_ce, this, "proxyMap",
-			sizeof("proxyMap")-1, freshArray);
+			8, freshArray);
 
 	zend_call_method_with_0_params(&this, this_ce, NULL,
 			"initializemodel", NULL);
@@ -568,14 +581,14 @@ PHP_METHOD(Model, getInstance)
 	puremvc_log_func_io("Model", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_model_ce, "instance",
-					sizeof("instance")-1, 1 TSRMLS_CC);
+					8, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_model_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_model_ce, NULL,
 				"__construct", NULL);
 		ZVAL_ADDREF(return_value);
-		zend_update_static_property(puremvc_model_ce, "instance", sizeof("instance")-1,
+		zend_update_static_property(puremvc_model_ce, "instance", 8,
 				return_value TSRMLS_CC);
 	} else {
 		RETVAL_OBJECT(instance, 1);
@@ -608,7 +621,7 @@ PHP_METHOD(Model, registerProxy)
 	}
 
 	proxyMap = zend_read_property(this_ce, this,
-				"proxyMap", sizeof("proxyMap")-1, 1 TSRMLS_CC);
+				"proxyMap", 8, 1 TSRMLS_CC);
 
 	ZVAL_ADDREF(proxy);
 	add_assoc_zval(proxyMap, Z_STRVAL_P(proxyName), proxy);
@@ -659,14 +672,14 @@ PHP_METHOD(Model, removeProxy)
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 	proxyMap = zend_read_property(this_ce, this, "proxyMap",
-					sizeof("proxyMap")-1, 1 TSRMLS_CC);
+					8, 1 TSRMLS_CC);
 
 	if(zend_hash_find(Z_ARRVAL_P(proxyMap), rawProxyName,
 			rawProxyNameLength+1, (void**)&tmp) == SUCCESS) {
 		zend_hash_del(Z_ARRVAL_P(proxyMap), rawProxyName, rawProxyNameLength);
 
 		zend_update_property(this_ce, this, "proxyMap",
-				sizeof("proxyMap")-1, proxyMap);
+				8, proxyMap);
 
 		RETVAL_OBJECT(*tmp, 1);
 	}
@@ -715,9 +728,9 @@ PHP_METHOD(View, __construct)
 	this = getThis();
 	this_ce = zend_get_class_entry(this);
 	zend_update_property(this_ce, this, "mediatorMap",
-			sizeof("mediatorMap")-1, mediatorMap TSRMLS_CC);
+			11, mediatorMap TSRMLS_CC);
 	zend_update_property(this_ce, this, "observerMap",
-			sizeof("observerMap")-1, observerMap TSRMLS_CC);
+			11, observerMap TSRMLS_CC);
 
 	zend_call_method_with_0_params(&this, this_ce, NULL,
 			"initializeview", NULL);
@@ -740,13 +753,13 @@ PHP_METHOD(View, getInstance)
 	puremvc_log_func_io("View", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_view_ce, "instance",
-				sizeof("instance")-1, 1 TSRMLS_CC);
+				8, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_view_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_view_ce, NULL,
 				"__construct", NULL);
-		zend_update_static_property(puremvc_view_ce, "instance", sizeof("instance")-1,
+		zend_update_static_property(puremvc_view_ce, "instance", 8,
 				return_value TSRMLS_CC);
 	} else {
 		RETVAL_OBJECT(instance, 1);
@@ -810,7 +823,7 @@ PHP_METHOD(View, registerObserver)
 		 */
 		zval **tmpMap;
 
-		//// TODO check SUCCESS / FAILURE ..
+//// TODO check SUCCESS / FAILURE ..
 		zend_hash_find(oMapHt, rawNotificationName,
 			rawNotificationNameLength+1, (void**)&tmpMap);
 
@@ -1107,7 +1120,7 @@ PHP_METHOD(MacroCommand, __construct)
 	this = getThis();
 	array_init(return_value);
 
-	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
+	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", 11,
 			return_value TSRMLS_CC);
 
 	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
@@ -1144,12 +1157,12 @@ PHP_METHOD(MacroCommand, addSubCommand)
 	this = getThis();
 	zend_class_entry *this_ce = zend_get_class_entry(this);
 	subCommands = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
-					sizeof("subCommands")-1, 1 TSRMLS_CC);
+					11, 1 TSRMLS_CC);
 
 	ZVAL_ADDREF(subCommand);
 	add_next_index_zval(subCommands, subCommand);
 
-	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", sizeof("subCommands")-1,
+	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", 11,
 			subCommands TSRMLS_CC);
 
 	puremvc_log_func_io("MacroCommand", "addSubCommand", 0);
@@ -1172,7 +1185,7 @@ PHP_METHOD(MacroCommand, execute)
 
 	/* get the $subCommands HashTable, wraped in a zval */
 	subCommandsVal = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
-					sizeof("subCommands")-1, 1 TSRMLS_CC);
+					11, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(subCommandsVal) != IS_ARRAY) {
 //// TODO better error message here
@@ -1218,7 +1231,7 @@ PHP_METHOD(SimpleCommand, __construct)
 	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL, "getinstance",
 			&return_value);
 	this = getThis();
-	zend_update_property(puremvc_simplecommand_ce, this, "facade", sizeof("facade")-1,
+	zend_update_property(puremvc_simplecommand_ce, this, "facade", 6,
 			return_value TSRMLS_CC);
 
 	puremvc_log_func_io("SimpleCommand", "__construct", 0);
@@ -1278,13 +1291,13 @@ PHP_METHOD(Facade, getInstance)
 	puremvc_log_func_io("Facade", "getInstance", 1);
 
 	instance = zend_read_static_property(puremvc_facade_ce, "instance",
-					sizeof("instance")-1, 0 TSRMLS_CC);
+					8, 0 TSRMLS_CC);
 	if(Z_TYPE_P(instance) == IS_NULL) {
 		object_init_ex(return_value, puremvc_facade_ce);
 		zend_call_method_with_0_params(&return_value, puremvc_facade_ce, NULL,
 				"__construct", NULL);
 		ZVAL_ADDREF(return_value);
-		zend_update_static_property(puremvc_facade_ce, "instance", sizeof("instance")-1,
+		zend_update_static_property(puremvc_facade_ce, "instance", 8,
 				return_value TSRMLS_CC);
 	} else {
 		RETVAL_OBJECT(instance, 1);
@@ -1315,7 +1328,7 @@ PHP_METHOD(Facade, initializeController)
 	this = getThis();
 	zend_call_method_with_0_params(&this, puremvc_controller_ce, NULL, "getinstance",
 				&return_value);
-	zend_update_property(puremvc_facade_ce, this, "controller", sizeof("controller")-1,
+	zend_update_property(puremvc_facade_ce, this, "controller", 10,
 			return_value TSRMLS_CC);
 
 	puremvc_log_func_io("Facade", "initializeController", 0);
@@ -1333,7 +1346,7 @@ PHP_METHOD(Facade, initializeModel)
 	this = getThis();
 	//return_value = zend_read_property(&puremvc_macrocommand_ce, this, "model",
 	return_value = zend_read_property(zend_get_class_entry(this), this, "model",
-					sizeof("model")-1, 1 TSRMLS_CC);
+					5, 1 TSRMLS_CC);
 
 	/* just return the instance in return_value if it already exists */
 	if(Z_TYPE_P(return_value) != IS_NULL) {
@@ -1344,7 +1357,7 @@ PHP_METHOD(Facade, initializeModel)
 	zend_call_method_with_0_params(&this, puremvc_model_ce, NULL, "getinstance",
 				&return_value);
 /// add a ref here ?
-	zend_update_property(puremvc_facade_ce, this, "model", sizeof("model")-1,
+	zend_update_property(puremvc_facade_ce, this, "model", 5,
 			return_value TSRMLS_CC);
 
 	puremvc_log_func_io("Facade", "initializeModel", 0);
@@ -1361,7 +1374,7 @@ PHP_METHOD(Facade, initializeView)
 
 	this = getThis();
 	return_value = zend_read_property(zend_get_class_entry(this), this, "view",
-					sizeof("view")-1, 1 TSRMLS_CC);
+					4, 1 TSRMLS_CC);
 
 	/* just return the instance in return_value if it already exists */
 	if(Z_TYPE_P(return_value) != IS_NULL) {
@@ -1371,7 +1384,7 @@ PHP_METHOD(Facade, initializeView)
 	this = getThis();
 	zend_call_method_with_0_params(&this, puremvc_view_ce, NULL, "getinstance",
 				&return_value);
-	zend_update_property(puremvc_facade_ce, this, "view", sizeof("view")-1,
+	zend_update_property(puremvc_facade_ce, this, "view", 4,
 			return_value TSRMLS_CC);
 
 	puremvc_log_func_io("Facade", "initializeView", 0);
@@ -1391,7 +1404,7 @@ PHP_METHOD(Facade, notifyObservers)
 
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
-					sizeof("view")-1, 1 TSRMLS_CC);
+					4, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
 			"notifyobservers", NULL, inotification);
@@ -1414,7 +1427,7 @@ PHP_METHOD(Facade, registerCommand)
 
 	this = getThis();
 	controller = zend_read_property(puremvc_facade_ce, this, "controller",
-					sizeof("controller")-1, 1 TSRMLS_CC);
+					10, 1 TSRMLS_CC);
 
 	if(Z_TYPE_P(controller) == IS_NULL)
 		return;
@@ -1447,7 +1460,7 @@ PHP_METHOD(Facade, removeCommand)
 
 	this = getThis();
 	controller = zend_read_property(puremvc_facade_ce, this, "controller",
-					sizeof("controller")-1, 1 TSRMLS_CC);
+					10, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller), NULL,
 			"removecommand", NULL, notificationName);
@@ -1472,7 +1485,7 @@ PHP_METHOD(Facade, hasCommand)
 
 	this = getThis();
 	controller = zend_read_property(zend_get_class_entry(this), this, "controller",
-					sizeof("controller")-1, 1 TSRMLS_CC);
+					10, 1 TSRMLS_CC);
 	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller), NULL,
 			"hascommand", &return_value, notificationName);
 }
@@ -1543,7 +1556,7 @@ PHP_METHOD(Facade, hasProxy)
 
 	this = getThis();
 	model = zend_read_property(zend_get_class_entry(this), this, "model",
-				sizeof("model")-1, 1 TSRMLS_CC);
+				5, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL, "hasproxy",
 		&return_value, proxyName);
@@ -1568,7 +1581,7 @@ PHP_METHOD(Facade, removeProxy)
 
 	this = getThis();
 	model = zend_read_property(zend_get_class_entry(this), this, "model",
-			sizeof("model")-1, 1 TSRMLS_CC);
+			5, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
 			"removeproxy", NULL, proxyName);
@@ -1613,7 +1626,7 @@ PHP_METHOD(Facade, retrieveMediator)
 
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
-				sizeof("view")-1, 1 TSRMLS_CC);
+				4, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
 			"retrievemediator", &return_value, mediatorName);
@@ -1638,7 +1651,7 @@ PHP_METHOD(Facade, hasMediator)
 
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
-				sizeof("view")-1, 1 TSRMLS_CC);
+				4, 1 TSRMLS_CC);
 	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
 			"hasmediator", &return_value, mediatorName);
 }
@@ -1662,7 +1675,7 @@ PHP_METHOD(Facade, removeMediator)
 
 	this = getThis();
 	view = zend_read_property(zend_get_class_entry(this), this, "view",
-				sizeof("view")-1, 1 TSRMLS_CC);
+				4, 1 TSRMLS_CC);
 
 	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
 			"removemediator", NULL, mediatorName);
@@ -1872,18 +1885,20 @@ PHP_METHOD(Notification, __construct)
 	ZVAL_STRINGL(name, rawName, rawNameLength, 1);
 	ZVAL_ADDREF(name);
 	zend_update_property(puremvc_notification_ce, this,
-		"name", sizeof("name")-1, name TSRMLS_CC);
+		"name", 4, name TSRMLS_CC);
+
 	if(rawBody != NULL) {
 		MAKE_STD_ZVAL(body);
 		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
 		zend_update_property(puremvc_notification_ce, this,
-			"body", sizeof("body")-1, body TSRMLS_CC);
+			"body", 4, body TSRMLS_CC);
 	}
+
 	if(rawType != NULL) {
 		MAKE_STD_ZVAL(type);
 		ZVAL_STRINGL(type, rawType, rawTypeLength, 1);
 		zend_update_property(puremvc_notification_ce, this,
-			"type", sizeof("type")-1, type TSRMLS_CC);
+			"type", 4, type TSRMLS_CC);
 	}
 }
 /* }}} */
@@ -1905,7 +1920,7 @@ PHP_METHOD(Notification, getBody)
 	zval *body;
 
 	body = zend_read_property(puremvc_notification_ce, getThis(),
-		"body", sizeof("body")-1, 1 TSRMLS_CC);
+		"body", 4, 1 TSRMLS_CC);
 
 	RETVAL_STRINGL(Z_STRVAL_P(body), Z_STRLEN_P(body), 1);
 }
@@ -1918,7 +1933,7 @@ PHP_METHOD(Notification, getType)
 
 	this = getThis();
 	type = zend_read_property(puremvc_notification_ce, this,
-		"type", sizeof("type")-1, 1 TSRMLS_CC);
+		"type", 4, 1 TSRMLS_CC);
 
 	RETVAL_STRINGL(Z_STRVAL_P(type), Z_STRLEN_P(type), 1);
 }
@@ -1941,7 +1956,7 @@ PHP_METHOD(Notification, setBody)
 	ZVAL_ADDREF(body);
 
 	zend_update_property(puremvc_notification_ce, getThis(),
-		"body", sizeof("body")-1, body TSRMLS_CC);
+		"body", 4, body TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public void Notification::setType(string type)
@@ -1962,7 +1977,7 @@ PHP_METHOD(Notification, setType)
 	ZVAL_ADDREF(type);
 
 	zend_update_property(puremvc_notification_ce, getThis(),
-		"type", sizeof("type")-1, type TSRMLS_CC);
+		"type", 4, type TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public string Notification::toString()
@@ -1978,12 +1993,12 @@ PHP_METHOD(Notification, toString)
 	/* append the name */
 	smart_str_appends(&stringVal, "Notification Name:");
 	buffer = zend_read_property(this_ce, this,
-			"name", sizeof("name")-1, 1 TSRMLS_CC);
+			"name", 4, 1 TSRMLS_CC);
 	smart_str_appends(&stringVal, Z_STRVAL_P(buffer));
 	/* append the body */
 	smart_str_appends(&stringVal, "\nBody:");
 	buffer = zend_read_property(this_ce, this,
-			"body", sizeof("body")-1, 1 TSRMLS_CC);
+			"body", 4, 1 TSRMLS_CC);
 	if( buffer == NULL ||
 		(Z_TYPE_P(buffer) == IS_STRING && Z_STRLEN_P(buffer) == 0) )
 		smart_str_appends(&stringVal, "null");
@@ -1992,7 +2007,7 @@ PHP_METHOD(Notification, toString)
 	/* append the type */
 	smart_str_appends(&stringVal, "\nType:");
 	buffer = zend_read_property(this_ce, this,
-			"type", sizeof("type")-1, 1 TSRMLS_CC);
+			"type", 4, 1 TSRMLS_CC);
 	if( buffer == NULL ||
 		(Z_TYPE_P(buffer) == IS_STRING && Z_STRLEN_P(buffer) == 0) )
 		smart_str_appends(&stringVal, "null");
@@ -2012,7 +2027,7 @@ PHP_METHOD(Notifier, __construct)
 
 	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
 			"getinstance", &return_value);
-	zend_update_property(puremvc_notifier_ce, getThis(), "facade", sizeof("facade")-1,
+	zend_update_property(puremvc_notifier_ce, getThis(), "facade", 6,
 			return_value);
 
 	puremvc_log_func_io("SimpleCommand", "__construct", 0);
@@ -2053,7 +2068,7 @@ PHP_METHOD(Notifier, sendNotification)
 
 	this = getThis();
 	facade = zend_read_property(zend_get_class_entry(this), this,
-				"facade", sizeof("facade")-1, 1 TSRMLS_CC);
+				"facade", 6, 1 TSRMLS_CC);
 
 	puremvc_call_method_with_3_params(&facade, zend_get_class_entry(facade),
 			NULL, "sendnotification", NULL, notificationName, body, type);
@@ -2104,7 +2119,7 @@ PHP_METHOD(Observer, setNotifyMethod)
 	ZVAL_ADDREF(notifyMethod);
 
 	zend_update_property(puremvc_observer_ce, getThis(),
-		"notify", sizeof("notify")-1, notifyMethod TSRMLS_CC);
+		"notify", 6, notifyMethod TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public void Observer::setNotifyContext(string notifyContext)
@@ -2120,7 +2135,7 @@ PHP_METHOD(Observer, setNotifyContext)
 
 	this = getThis();
 	zend_update_property(puremvc_observer_ce, this,
-		"context", sizeof("context")-1, notifyContext TSRMLS_CC);
+		"context", 7, notifyContext TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto string Observer::getNotifyMethod()
@@ -2131,7 +2146,7 @@ PHP_METHOD(Observer, getNotifyMethod)
 
 	this = getThis();
 	notifyMethod = zend_read_property(puremvc_observer_ce, this,
-					"notify", sizeof("notify")-1, 1 TSRMLS_CC);
+					"notify", 6, 1 TSRMLS_CC);
 
 	RETVAL_STRINGL(Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod), 1);
 }
@@ -2144,7 +2159,7 @@ PHP_METHOD(Observer, getNotifyContext)
 
 	this = getThis();
 	notifyContext = zend_read_property(puremvc_observer_ce, this,
-					"context", sizeof("context")-1, 1 TSRMLS_CC);
+					"context", 7, 1 TSRMLS_CC);
 
 	RETVAL_OBJECT(notifyContext, 1);
 }
