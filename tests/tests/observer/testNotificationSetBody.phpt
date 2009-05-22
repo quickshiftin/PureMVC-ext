@@ -11,7 +11,7 @@ object(Notification)#1 (3) {
   ["name:private"]=>
   string(4) "blah"
   ["type:private"]=>
-  string(0) ""
+  NULL
   ["body:private"]=>
   string(8) "testbody"
 }

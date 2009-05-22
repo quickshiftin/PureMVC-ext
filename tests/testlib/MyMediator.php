@@ -35,7 +35,7 @@ class MyMediator extends Mediator {
 		return parent::registerObserver($observer);
 	}
 
-	public function handleNotification($notification) {
+	public function handleNotification(INotification $notification) {
 		if(self::$isVerbose)
 			echo $notification->getName() . PHP_EOL;
 		return parent::handleNotification($notification);

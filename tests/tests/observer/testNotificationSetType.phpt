@@ -13,5 +13,5 @@ object(Notification)#1 (3) {
   ["type:private"]=>
   string(8) "testtype"
   ["body:private"]=>
-  string(0) ""
+  NULL
 }
