@@ -1,6 +1,6 @@
 /*
 	----------------------------------------------------------------------------------
-	This software is a natvie port of PureMVC for PHP5
+	This software is a native port of PureMVC for PHP5
 
 	The PureMVC Manifold is a free, open-source software project created and
 	maintained by Futurescale, Inc. Copyright © 2006-08, Some rights reserved.
@@ -1870,15 +1870,16 @@ PHP_METHOD(Mediator, onRemove)
 PHP_METHOD(Notification, __construct)
 {
 	zval *this, *name, *body, *type;
-	char *rawName = NULL, *rawBody = NULL, *rawType = NULL;
-	int rawNameLength, rawBodyLength, rawTypeLength;
+	char *rawName = NULL, *rawType = NULL;
+	int rawNameLength, rawTypeLength;
 
-	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|ss",
-			&rawName, &rawNameLength, &rawBody, &rawBodyLength,
+	body = NULL;
+
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|zs",
+			&rawName, &rawNameLength, &body,
 			&rawType, &rawTypeLength) == FAILURE) {
 		return;
 	}
-
 	this = getThis();
 
 	MAKE_STD_ZVAL(name);
@@ -1887,19 +1888,24 @@ PHP_METHOD(Notification, __construct)
 	zend_update_property(puremvc_notification_ce, this,
 		"name", 4, name TSRMLS_CC);
 
-	if(rawBody != NULL) {
+	/* if a body wasnt provided, create a NULL zval and store it on the instance */
+	if(body == NULL) {
 		MAKE_STD_ZVAL(body);
-		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
-		zend_update_property(puremvc_notification_ce, this,
-			"body", 4, body TSRMLS_CC);
+		ZVAL_NULL(body);
 	}
+	zend_update_property(puremvc_notification_ce, this,
+		"body", 4, body TSRMLS_CC);
 
+	/* import the raw string into a zval and store it on the instance */
 	if(rawType != NULL) {
 		MAKE_STD_ZVAL(type);
 		ZVAL_STRINGL(type, rawType, rawTypeLength, 1);
-		zend_update_property(puremvc_notification_ce, this,
-			"type", 4, type TSRMLS_CC);
+	} else {
+		MAKE_STD_ZVAL(type);
+		ZVAL_NULL(type);
 	}
+	zend_update_property(puremvc_notification_ce, this,
+		"type", 4, type TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public string Notification::getName
@@ -1922,7 +1928,7 @@ PHP_METHOD(Notification, getBody)
 	body = zend_read_property(puremvc_notification_ce, getThis(),
 		"body", 4, 1 TSRMLS_CC);
 
-	RETVAL_STRINGL(Z_STRVAL_P(body), Z_STRLEN_P(body), 1);
+	RETURN_ZVAL(body, 0, 0);
 }
 /* }}} */
 /* {{{ proto public string Notification::getType()
@@ -1943,16 +1949,12 @@ PHP_METHOD(Notification, getType)
 PHP_METHOD(Notification, setBody)
 {
 	zval *body;
-	char *rawBody;
-	int rawBodyLength;
 
-	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
-			&rawBody, &rawBodyLength) == FAILURE) {
+	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z",
+			&body) == FAILURE) {
 		return;
 	}
 
-	MAKE_STD_ZVAL(body);
-	ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
 	ZVAL_ADDREF(body);
 
 	zend_update_property(puremvc_notification_ce, getThis(),
@@ -1996,6 +1998,7 @@ PHP_METHOD(Notification, toString)
 			"name", 4, 1 TSRMLS_CC);
 	smart_str_appends(&stringVal, Z_STRVAL_P(buffer));
 	/* append the body */
+//// TODO if the body is an object, call __toString() on it..
 	smart_str_appends(&stringVal, "\nBody:");
 	buffer = zend_read_property(this_ce, this,
 			"body", 4, 1 TSRMLS_CC);
@@ -2430,7 +2433,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_imediator_setViewComponent, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_imediator_handleNotification, 0, 0, 1)
-	ZEND_ARG_INFO(0, notification)
+	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
 ZEND_END_ARG_INFO()
 static function_entry puremvc_mediator_iface_methods[] = {
 	PHP_ABSTRACT_ME(IMediator, getMediatorName, NULL)
@@ -2517,7 +2520,6 @@ ZEND_END_ARG_INFO()
 static function_entry puremvc_observer_iface_methods[] = {
 	PHP_ABSTRACT_ME(IObserver, setNotifyMethod, arginfo_iobserver_setNotifyMethod)
 	PHP_ABSTRACT_ME(IObserver, setNotifyContext, arginfo_iobserver_setNotifyContext)
-	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_iobserver_notifyObserver)
 	PHP_ABSTRACT_ME(IObserver, notifyObserver, arginfo_iobserver_notifyObserver)
 	PHP_ABSTRACT_ME(IObserver, compareNotifyContext, arginfo_iobserver_compareNotifyContent)
 	{ NULL, NULL, NULL }
@@ -2826,7 +2828,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_setViewComponent, 0, 0, 1)
 ZEND_END_ARG_INFO()
 static
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mediator_handleNotification, 0, 0, 1)
-	ZEND_ARG_INFO(0, notification)
+	ZEND_ARG_OBJ_INFO(0, notification, INotification, 0)
 ZEND_END_ARG_INFO()
 
 static function_entry puremvc_mediator_class_methods[] = {
