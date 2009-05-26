@@ -62,7 +62,7 @@ extern zend_module_entry pure_mvc_module_entry;
  */
 typedef struct _puremvc_iteration_info {
 	zval *view;			/* ref to the view */
-	zval *mediatorName;	/* name of the mediator */
+	zval *other;	/* some other zval w/ data */
 } puremvc_iteration_info;
 
 /* return object(values) */
