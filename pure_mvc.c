@@ -193,10 +193,8 @@ puremvc_iteration_info* create_puremvc_iteration_info(zval *view, zval *other) {
 }
 
 int puremvc_view_iterate_notificationInterests(zval **val, puremvc_iteration_info *arg TSRMLS_DC) {
-/*
-	zend_call_method_with_2_params(val, zend_get_class_entry(*val), NULL,
-			"registerobserver", NULL, arg->view, arg->other);
-*/
+	zend_call_method_with_2_params(&(arg->view), zend_get_class_entry(arg->view), NULL,
+			"registerobserver", NULL, *val, arg->other);
 }
 
 int puremvc_view_iterate_observers2(zval **val, zval *notification) {
@@ -938,7 +936,6 @@ PHP_METHOD(View, registerMediator)
 	/* ask the mediator about notification interests */
 	zend_call_method_with_0_params(&mediator, mediator_ce,
 			NULL, "listnotificationinterests", &notificationInterests);
-
 
 	/* loop over interests, creating observers and registering them */
 	if(zend_hash_num_elements(Z_ARRVAL_P(notificationInterests)) > 0) {
