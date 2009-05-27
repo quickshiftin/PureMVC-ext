@@ -265,44 +265,44 @@ int puremvc_view_iterate_observerMap(zval **observers, puremvc_iteration_info *a
  */
 int puremvc_execute_command_in_hash(zval **val, zval *notification TSRMLS_DC)
 {
+	/// return_value declared here b/c this is not a PHP_METHOD()
 	zval *tmpcpy, *subCommandInstance, *return_value;
-	zend_class_entry **ce, *ze_p;
+	zend_class_entry **ce;
 
-	tmpcpy  = *val;
-	SEPARATE_ZVAL(&tmpcpy);
+//	tmpcpy  = *val;
+//	SEPARATE_ZVAL(&tmpcpy);
 
 	php_strtolower(Z_STRVAL_PP(val), Z_STRLEN_PP(val));
 
-	if(zend_lookup_class(Z_STRVAL_P(tmpcpy), Z_STRLEN_P(tmpcpy),
+	if(zend_lookup_class(Z_STRVAL_PP(val), Z_STRLEN_PP(val),
 		&ce TSRMLS_CC)  == FAILURE) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE,
 		"pure_mvc-internal: Class [%s] does not exist.", Z_STRVAL_PP(val));
-		zval_dtor(tmpcpy);
+		//zval_dtor(tmpcpy);
 		RETURN_FALSE;
-	} else {
-		ze_p = *ce;
 	}
 
 	MAKE_STD_ZVAL(subCommandInstance);
-	object_init_ex(subCommandInstance, ze_p);
+	object_init_ex(subCommandInstance, *ce);
 
+//php_var_dump(&subCommandInstance, 1);
 	// attempt to call constructor, if it exists 
-	if(zend_hash_exists(&ze_p->function_table,
-		"__construct", strlen("__construct") + 1)) {
+	if(zend_hash_exists(&(*ce)->function_table,
+		"__construct", strlen("__construct")+1)) {
 		zend_call_method_with_0_params(&subCommandInstance, *ce, NULL,
 			"__construct", NULL);
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to find \
-			constructor for alleged class [%s]\n", ze_p->name);
+			constructor for alleged class [%s]\n", (*ce)->name);
 	}
-
+//php_var_dump(&subCommandInstance, 1);
 	// attempt to call the execute() method 
-	if(zend_hash_exists(&ze_p->function_table,
-		"execute", strlen("execute") +1)) {
+	if(zend_hash_exists(&(*ce)->function_table,
+		"execute", strlen("execute")+1)) {
 		zend_call_method_with_1_params(&subCommandInstance, *ce, NULL,
 			"execute", NULL, notification);
 	}
-	zval_dtor(tmpcpy);
+//	zval_dtor(tmpcpy);
 
 	return SUCCESS;
 }
@@ -1118,13 +1118,15 @@ PHP_METHOD(MacroCommand, initializeMacroCommand)
 PHP_METHOD(MacroCommand, __construct)
 {
 	puremvc_log_func_io("MacroCommand", "__construct", 1);
-	zval *this;
+	zval *this, *subCommands;
 
 	this = getThis();
-	array_init(return_value);
 
+	/* initialize and empty array and store it on the instance */
+	MAKE_STD_ZVAL(subCommands);
+	array_init(subCommands);
 	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", 11,
-			return_value TSRMLS_CC);
+			subCommands TSRMLS_CC);
 
 	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
 			"initializemacrocommand", NULL);
@@ -1158,15 +1160,16 @@ PHP_METHOD(MacroCommand, addSubCommand)
 	ZVAL_STRINGL(subCommand, rawSubCommand, rawSubCommandLength, 1);
 
 	this = getThis();
-	zend_class_entry *this_ce = zend_get_class_entry(this);
 	subCommands = zend_read_property(puremvc_macrocommand_ce, this, "subCommands",
 					11, 1 TSRMLS_CC);
 
 	ZVAL_ADDREF(subCommand);
 	add_next_index_zval(subCommands, subCommand);
 
+/*
 	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", 11,
 			subCommands TSRMLS_CC);
+*/
 
 	puremvc_log_func_io("MacroCommand", "addSubCommand", 0);
 }
@@ -1324,6 +1327,7 @@ PHP_METHOD(Facade, initializeController)
 	this = getThis();
 
 	/* just return the instance in return_value if it already exists */
+//// TODO: return_value isnt populated w/ anything here, WTF...
 	if(Z_TYPE_P(return_value) != IS_NULL) {
 		puremvc_log_func_io("Facade", "initializeController", 0);
 		return;
