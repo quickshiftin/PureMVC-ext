@@ -1891,11 +1891,9 @@ PHP_METHOD(Mediator, onRemove)
 		constructor */
 PHP_METHOD(Notification, __construct)
 {
-	zval *this, *name, *body, *type;
+	zval *this, *name, *body = NULL, *type;
 	char *rawName = NULL, *rawType = NULL;
 	int rawNameLength, rawTypeLength;
-
-	body = NULL;
 
 	if( zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|zs",
 			&rawName, &rawNameLength, &body,
@@ -2074,13 +2072,13 @@ PHP_METHOD(Notifier, __construct)
 PHP_METHOD(Notifier, sendNotification)
 {
 	zval *this, *notificationName, *body, *type, *facade;
-	char *rawNotificationName, *rawBody, *rawType;
-	int rawNotificationNameLength, rawBodyLength, rawTypeLength;
+	char *rawNotificationName, *rawType;
+	int rawNotificationNameLength, rawTypeLength;
 	int numParams = ZEND_NUM_ARGS();
 
-	if(zend_parse_parameters(numParams TSRMLS_CC, "s|ss",
+	if(zend_parse_parameters(numParams TSRMLS_CC, "s|zs",
 			&rawNotificationName, &rawNotificationNameLength,
-			&rawBody, &rawBodyLength, &rawType, &rawTypeLength) == FAILURE) {
+			&body, &rawType, &rawTypeLength) == FAILURE) {
 		return;
 	}
 
@@ -2088,10 +2086,9 @@ PHP_METHOD(Notifier, sendNotification)
 	ZVAL_STRINGL(notificationName, rawNotificationName,
 			rawNotificationNameLength, 1);
 
-	MAKE_STD_ZVAL(body);
-	if(numParams == 2 || numParams == 3) {
-		ZVAL_STRINGL(body, rawBody, rawBodyLength, 1);
-	} else {
+	/* if a body wasnt provided, create a NULL zval and store it on the instance */
+	if(body == NULL) {
+		MAKE_STD_ZVAL(body);
 		ZVAL_NULL(body);
 	}
 
