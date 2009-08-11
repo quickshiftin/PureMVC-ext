@@ -154,7 +154,7 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 	args[2] = &arg3;
 	args[3] = &arg4;
 
-	return puremvc_call_method_multi_param(object_pp, obj_ce, fn_proxy, function_name, function_name_len, retval_ptr_ptr, param_count, args TSRMLS_DC);
+	return puremvc_call_method_multi_param(object_pp, obj_ce, fn_proxy, function_name, function_name_len, retval_ptr_ptr, param_count, args TSRMLS_CC);
 }
 /* }}} */
 /* @param char *classname class name of method
@@ -172,6 +172,7 @@ zval* puremvc_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_funct
 void puremvc_log_func_io(char *classname, char *methodname, int isStart)
 {
 	if(PUREMVC_SHOULD_LOG_FUNC_IO == 1) {
+		TSRMLS_FETCH();
 		if(isStart)
 			php_error_docref(NULL TSRMLS_CC, E_WARNING,
 				">>> %s::%s", classname, methodname);
@@ -193,11 +194,12 @@ puremvc_iteration_info* create_puremvc_iteration_info(zval *view, zval *other) {
 }
 
 int puremvc_view_iterate_notificationInterests(zval **val, puremvc_iteration_info *arg TSRMLS_DC) {
-	zend_call_method_with_2_params(&(arg->view), zend_get_class_entry(arg->view), NULL,
+	zend_call_method_with_2_params(&(arg->view), zend_get_class_entry(arg->view TSRMLS_CC), NULL,
 			"registerobserver", NULL, *val, arg->other);
 }
 
 int puremvc_view_iterate_observers2(zval **val, zval *notification) {
+	TSRMLS_FETCH();
 	zend_call_method_with_1_params(val,
 			puremvc_observer_ce, NULL,
 			"notifyobserver", NULL, notification);
@@ -215,7 +217,7 @@ int puremvc_view_iterate_observers(zval **val, puremvc_iteration_info *arg TSRML
 
 	/* retrieve the mediator given the supplied mediatorName */
 	zend_call_method_with_1_params(&view,
-			zend_get_class_entry(view), NULL,
+			zend_get_class_entry(view TSRMLS_CC), NULL,
 			"retrievemediator", &mediator, arg->other);
 
 	/* ask the Observer to compare the notify context */
@@ -324,7 +326,7 @@ PHP_METHOD(Controller, __construct)
 	array_init(commandMap);
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	zend_update_property(this_ce, this, "commandMap",
 		10, commandMap TSRMLS_CC);
 
@@ -347,7 +349,7 @@ PHP_METHOD(Controller, initializeController)
 	zend_call_method_with_0_params(NULL, puremvc_view_ce, NULL,
 				"getinstance", &view);
 
-	zend_update_property(zend_get_class_entry(this), this,
+	zend_update_property(zend_get_class_entry(this TSRMLS_CC), this,
 		"view", 4, view TSRMLS_CC);
 }
 /* }}} */
@@ -387,7 +389,7 @@ PHP_METHOD(Controller, executeCommand)
 
 	/* setup this & this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* parse params */
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o",
@@ -402,7 +404,7 @@ PHP_METHOD(Controller, executeCommand)
 	 * call getName() on the INotification instance
 	 */
 	zend_call_method_with_0_params(&notification,
-			zend_get_class_entry(notification), NULL,
+			zend_get_class_entry(notification TSRMLS_CC), NULL,
 				"getname", &notificationName);
 
 
@@ -434,7 +436,7 @@ PHP_METHOD(Controller, executeCommand)
 	/* create an instance of the (comman name) class named in the commandMap
 	 * and call execute() on it, passing it the INotification instance */
 //// TODO: determine if deleting the array elements is acceptable..
-	puremvc_execute_command_in_hash(tmp, notification);
+	puremvc_execute_command_in_hash(tmp, notification TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public void Controller::registerCommand( string notificationName, string commandClassName)
@@ -476,7 +478,7 @@ PHP_METHOD(Controller, registerCommand)
 
 	/* setup this & this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* populate the commandMap from this instance */
 	commandMap = zend_read_property(this_ce, this, "commandMap",
@@ -506,7 +508,7 @@ PHP_METHOD(Controller, registerCommand)
 				strlen("view"), 1 TSRMLS_CC);
 
 	/* call $this->view->registerObserver() passing the notification name */
-	zend_call_method_with_2_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_2_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"registerobserver", NULL, notificationName, observer);
 }
 /* }}} */
@@ -524,7 +526,7 @@ PHP_METHOD(Controller, hasCommand)
 	}
 
 	this = getThis();
-	commandMap = zend_read_property(zend_get_class_entry(this), this,
+	commandMap = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 						"commandMap", strlen("commandMap"), 1 TSRMLS_CC);
 
 	if(zend_hash_exists(Z_ARRVAL_P(commandMap),
@@ -550,7 +552,7 @@ PHP_METHOD(Controller, removeCommand)
 	}
 
 	this = getThis();
-	commandMap = zend_read_property(zend_get_class_entry(this), this, "commandMap",
+	commandMap = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "commandMap",
 						strlen("commandMap"), 1 TSRMLS_CC);
 
 	zend_hash_del(Z_ARRVAL_P(commandMap), rawNotificationName, rawNotificationNameLength+1);
@@ -570,10 +572,10 @@ PHP_METHOD(Model, __construct)
 	array_init(freshArray);
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	zend_update_property(this_ce, this, "proxyMap",
-			8, freshArray);
+			8, freshArray TSRMLS_CC);
 
 	zend_call_method_with_0_params(&this, this_ce, NULL,
 			"initializemodel", NULL);
@@ -626,8 +628,8 @@ PHP_METHOD(Model, registerProxy)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
-	proxy_ce = zend_get_class_entry(proxy);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
+	proxy_ce = zend_get_class_entry(proxy TSRMLS_CC);
 
 	zend_call_method_with_0_params(&proxy, proxy_ce, NULL,
 				"getproxyname", &proxyName);
@@ -661,7 +663,7 @@ PHP_METHOD(Model, retrieveProxy)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	proxyMap = zend_read_property(this_ce, this, "proxyMap",
 					strlen("proxyMap"), 0 TSRMLS_CC);
 
@@ -688,7 +690,7 @@ PHP_METHOD(Model, removeProxy)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	proxyMap = zend_read_property(this_ce, this, "proxyMap",
 					8, 1 TSRMLS_CC);
 
@@ -699,8 +701,8 @@ PHP_METHOD(Model, removeProxy)
 		zend_hash_del(Z_ARRVAL_P(proxyMap), rawProxyName, rawProxyNameLength+1);
 
 		/* inform the proxy its been removed */
-		zend_call_method_with_0_params(tmp, zend_get_class_entry(*tmp), NULL,
-				"onremove", NULL TSRMLS_CC);
+		zend_call_method_with_0_params(tmp, zend_get_class_entry(*tmp TSRMLS_CC), NULL,
+				"onremove", NULL);
 	} else {
 		RETURN_NULL();
 	}
@@ -720,7 +722,7 @@ PHP_METHOD(Model, hasProxy)
 	}
 
 	this = getThis();	
-	proxyMap = zend_read_property(zend_get_class_entry(this), this,
+	proxyMap = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 						"proxyMap", strlen("proxyMap"), 1 TSRMLS_CC);
 
 	if(zend_hash_exists(Z_ARRVAL_P(proxyMap),
@@ -747,7 +749,7 @@ PHP_METHOD(View, __construct)
 	array_init(observerMap);
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	zend_update_property(this_ce, this, "mediatorMap",
 			11, mediatorMap TSRMLS_CC);
 	zend_update_property(this_ce, this, "observerMap",
@@ -808,7 +810,7 @@ PHP_METHOD(View, registerObserver)
 
 	/* setup this && this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* read the observerMap from this instance */
 	observerMap = zend_read_property(this_ce, this, "observerMap",
@@ -868,14 +870,14 @@ PHP_METHOD(View, notifyObservers)
 
 	/* setup this && this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* read the observerMap from this instance */
 	observerMap = zend_read_property(this_ce, this, "observerMap",
 					strlen("observerMap"), 1 TSRMLS_CC);
 
 	/* get the name of the INotification instance */
-	zend_call_method_with_0_params(&notification, zend_get_class_entry(notification), NULL,
+	zend_call_method_with_0_params(&notification, zend_get_class_entry(notification TSRMLS_CC), NULL,
 				"getname", &notificationName); 
 
 	/* bail if there are no observers for this notification */
@@ -912,8 +914,8 @@ PHP_METHOD(View, registerMediator)
 
 	/* setup this && this_ce && mediator_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
-	mediator_ce = zend_get_class_entry(mediator);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
+	mediator_ce = zend_get_class_entry(mediator TSRMLS_CC);
 
 	/* populate the mediatorName */
 	zend_call_method_with_0_params(&mediator, mediator_ce, NULL,
@@ -985,7 +987,7 @@ PHP_METHOD(View, retrieveMediator)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	mediatorMap = zend_read_property(this_ce, this, "mediatorMap",
 					strlen("mediatorMap"), 0 TSRMLS_CC);
 
@@ -1012,7 +1014,7 @@ PHP_METHOD(View, hasMediator)
 	}
 
 	this = getThis();
-	mediatorMap = zend_read_property(zend_get_class_entry(this), this,
+	mediatorMap = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 						"mediatorMap", strlen("mediatorMap"), 1 TSRMLS_CC);
 
 	if(zend_hash_exists(Z_ARRVAL_P(mediatorMap),
@@ -1040,7 +1042,7 @@ PHP_METHOD(View, removeMediator)
 	}
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	MAKE_STD_ZVAL(mediatorName);
 	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
@@ -1096,7 +1098,7 @@ PHP_METHOD(View, removeMediator)
 
 	/* notify the mediator its been removed */
 	if(Z_TYPE_P(mediator) != IS_NULL) {
-		zend_call_method_with_0_params(&mediator, zend_get_class_entry(mediator),
+		zend_call_method_with_0_params(&mediator, zend_get_class_entry(mediator TSRMLS_CC),
 				NULL, "onremove", NULL);
 	}
 }
@@ -1125,7 +1127,7 @@ PHP_METHOD(MacroCommand, __construct)
 	zend_update_property(puremvc_macrocommand_ce, this, "subCommands", 11,
 			subCommands TSRMLS_CC);
 
-	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL,
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL,
 			"initializemacrocommand", NULL);
 
 /*  TODO the puremvc php code doesnt call the parent constructor,
@@ -1216,7 +1218,7 @@ PHP_METHOD(MacroCommand, execute)
 			continue;
 		}
 		/* loop body */
-		puremvc_execute_command_in_hash(ppzval, notification);
+		puremvc_execute_command_in_hash(ppzval, notification TSRMLS_CC);
 	}
 	/* remove all elements from the subCommands array */
 	zend_hash_clean(subCommandValHt);
@@ -1258,7 +1260,7 @@ PHP_METHOD(Facade, __construct)
 
 	this = getThis();
 
-	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL, "initializefacade",
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL, "initializefacade",
 			NULL);
 
 	puremvc_log_func_io("Facade", "__construct", 0);
@@ -1275,11 +1277,11 @@ PHP_METHOD(Facade, initializeFacade)
 
 	this = getThis();
 
-	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL, "initializemodel",
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL, "initializemodel",
 			NULL);
-	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL, "initializecontroller",
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL, "initializecontroller",
 			NULL);
-	zend_call_method_with_0_params(&this, zend_get_class_entry(this), NULL, "initializeview",
+	zend_call_method_with_0_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL, "initializeview",
 			NULL);
 
 	puremvc_log_func_io("Facade", "iniitializeFacade", 0);
@@ -1350,7 +1352,7 @@ PHP_METHOD(Facade, initializeModel)
 
 	this = getThis();
 	//return_value = zend_read_property(&puremvc_macrocommand_ce, this, "model",
-	return_value = zend_read_property(zend_get_class_entry(this), this, "model",
+	return_value = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "model",
 					5, 1 TSRMLS_CC);
 
 	/* just return the instance in return_value if it already exists */
@@ -1378,7 +1380,7 @@ PHP_METHOD(Facade, initializeView)
 	puremvc_log_func_io("Facade", "initializeView", 1);
 
 	this = getThis();
-	return_value = zend_read_property(zend_get_class_entry(this), this, "view",
+	return_value = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 					4, 1 TSRMLS_CC);
 
 	/* just return the instance in return_value if it already exists */
@@ -1408,10 +1410,10 @@ PHP_METHOD(Facade, notifyObservers)
 	}
 
 	this = getThis();
-	view = zend_read_property(zend_get_class_entry(this), this, "view",
+	view = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 					4, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"notifyobservers", NULL, inotification);
 }
 /* }}} */
@@ -1442,7 +1444,7 @@ PHP_METHOD(Facade, registerCommand)
 	ZVAL_STRING(notificationName, rawNotificationName, 1);
 	ZVAL_STRING(commandClassName, rawCommandClassName, 1);
 
-	zend_call_method_with_2_params(&controller, zend_get_class_entry(controller),
+	zend_call_method_with_2_params(&controller, zend_get_class_entry(controller TSRMLS_CC),
 			NULL, "registercommand", NULL, notificationName, commandClassName);
 }
 /* }}} */
@@ -1467,7 +1469,7 @@ PHP_METHOD(Facade, removeCommand)
 	controller = zend_read_property(puremvc_facade_ce, this, "controller",
 					10, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller), NULL,
+	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller TSRMLS_CC), NULL,
 			"removecommand", NULL, notificationName);
 }
 /* }}} */
@@ -1489,9 +1491,9 @@ PHP_METHOD(Facade, hasCommand)
 	ZVAL_STRINGL(notificationName, rawNotificationName, rawNotificationNameLength, 1);
 
 	this = getThis();
-	controller = zend_read_property(zend_get_class_entry(this), this, "controller",
+	controller = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "controller",
 					10, 1 TSRMLS_CC);
-	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller), NULL,
+	zend_call_method_with_1_params(&controller, zend_get_class_entry(controller TSRMLS_CC), NULL,
 			"hascommand", &result, notificationName);
 
 	RETURN_ZVAL(result, 1, 0);
@@ -1513,7 +1515,7 @@ PHP_METHOD(Facade, registerProxy)
 	model = zend_read_property(puremvc_facade_ce, this, "model",
 					strlen("model"), 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
+	zend_call_method_with_1_params(&model, zend_get_class_entry(model TSRMLS_CC), NULL,
 			"registerproxy", NULL, proxy);
 }
 /* }}} */
@@ -1535,10 +1537,10 @@ PHP_METHOD(Facade, retrieveProxy)
 	ZVAL_STRINGL(proxyName, rawProxyName, rawProxyNameLength, 1);
 
 	this = getThis();
-	model = zend_read_property(zend_get_class_entry(this), this, "model",
+	model = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "model",
 				strlen("model"), 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
+	zend_call_method_with_1_params(&model, zend_get_class_entry(model TSRMLS_CC), NULL,
 			"retrieveproxy", &returnValue, proxyName);
 
 	if(Z_TYPE_P(returnValue) != IS_NULL) {
@@ -1566,10 +1568,10 @@ PHP_METHOD(Facade, hasProxy)
 	ZVAL_STRINGL(proxyName, rawProxyName, rawProxyNameLength, 1);
 
 	this = getThis();
-	model = zend_read_property(zend_get_class_entry(this), this, "model",
+	model = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "model",
 				5, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL, "hasproxy",
+	zend_call_method_with_1_params(&model, zend_get_class_entry(model TSRMLS_CC), NULL, "hasproxy",
 		&result, proxyName);
 
 	RETURN_ZVAL(result, 1, 0);
@@ -1593,10 +1595,10 @@ PHP_METHOD(Facade, removeProxy)
 	ZVAL_STRINGL(proxyName, rawProxyName, rawProxyNameLength, 1);
 
 	this = getThis();
-	model = zend_read_property(zend_get_class_entry(this), this, "model",
+	model = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "model",
 			5, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&model, zend_get_class_entry(model), NULL,
+	zend_call_method_with_1_params(&model, zend_get_class_entry(model TSRMLS_CC), NULL,
 			"removeproxy", &proxy, proxyName);
 
 	RETVAL_ZVAL(proxy, 1, 0);
@@ -1615,10 +1617,10 @@ PHP_METHOD(Facade, registerMediator)
 	}
 
 	this = getThis();
-	view = zend_read_property(zend_get_class_entry(this), this, "view",
+	view = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 				strlen("view"), 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"registermediator", NULL, mediator);
 }
 /* }}} */
@@ -1640,10 +1642,10 @@ PHP_METHOD(Facade, retrieveMediator)
 	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 
 	this = getThis();
-	view = zend_read_property(zend_get_class_entry(this), this, "view",
+	view = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 				4, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"retrievemediator", &mediator, mediatorName);
 
 	RETURN_ZVAL(mediator, 1, 0);
@@ -1667,9 +1669,9 @@ PHP_METHOD(Facade, hasMediator)
 	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 
 	this = getThis();
-	view = zend_read_property(zend_get_class_entry(this), this, "view",
+	view = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 				4, 1 TSRMLS_CC);
-	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"hasmediator", &result, mediatorName);
 
 	RETURN_ZVAL(result, 1, 0);
@@ -1693,10 +1695,10 @@ PHP_METHOD(Facade, removeMediator)
 	ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 
 	this = getThis();
-	view = zend_read_property(zend_get_class_entry(this), this, "view",
+	view = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this, "view",
 				4, 1 TSRMLS_CC);
 
-	zend_call_method_with_1_params(&view, zend_get_class_entry(view), NULL,
+	zend_call_method_with_1_params(&view, zend_get_class_entry(view TSRMLS_CC), NULL,
 			"removemediator", &mediator, mediatorName);
 
 	RETURN_ZVAL(mediator, 0, 1);
@@ -1748,7 +1750,7 @@ PHP_METHOD(Facade, sendNotification)
 		NULL, "__construct", NULL, notificationName, body, type);
 
 	/* notify observers, passing the above create notification */
-	zend_call_method_with_1_params(&this, zend_get_class_entry(this), NULL,
+	zend_call_method_with_1_params(&this, zend_get_class_entry(this TSRMLS_CC), NULL,
 			"notifyobservers", NULL, notification);
 }
 /* }}} */
@@ -1773,7 +1775,7 @@ PHP_METHOD(Mediator, __construct)
 
 	/* setup this && this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* store a reference to the facade in this instance */
 	zend_update_property(this_ce, this, "facade",
@@ -1805,7 +1807,7 @@ PHP_METHOD(Mediator, __construct)
 		ZVAL_STRINGL(mediatorName, rawMediatorName, rawMediatorNameLength, 1);
 	}
 	zend_update_property(this_ce, this, "mediatorName",
-		strlen("mediatorName"), mediatorName);
+		strlen("mediatorName"), mediatorName TSRMLS_CC);
 }
 /* }}} */
 /* {{{ proto public string Mediator::getMediatorName()
@@ -1815,7 +1817,7 @@ PHP_METHOD(Mediator, getMediatorName)
 	zval *this, *mediatorName;
 
 	this = getThis();
-	mediatorName = zend_read_property(zend_get_class_entry(this), this,
+	mediatorName = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 			"mediatorName", strlen("mediatorName"), 1 TSRMLS_CC);
 
 	RETURN_STRINGL(Z_STRVAL_P(mediatorName), Z_STRLEN_P(mediatorName), 1);
@@ -1827,7 +1829,7 @@ PHP_METHOD(Mediator, getViewComponent)
 {
 	zval *this, *viewComponent;
 	this = getThis();
-	viewComponent = zend_read_property(zend_get_class_entry(this), this,
+	viewComponent = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 						"viewComponent", strlen("viewComponent"), 1 TSRMLS_CC);
 
 	RETVAL_ZVAL(viewComponent, 0, 0);
@@ -1846,7 +1848,7 @@ PHP_METHOD(Mediator, setViewComponent)
 
 	this = getThis();
 
-	zend_update_property(zend_get_class_entry(this), this, "viewComponent",
+	zend_update_property(zend_get_class_entry(this TSRMLS_CC), this, "viewComponent",
 			strlen("viewComponent"), viewComponent TSRMLS_CC);
 }
 /* }}} */
@@ -2008,7 +2010,7 @@ PHP_METHOD(Notification, toString)
 	smart_str stringVal = {0};
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this); 
+	this_ce = zend_get_class_entry(this TSRMLS_CC); 
 	/* append the name */
 	smart_str_appends(&stringVal, "Notification Name:");
 	buffer = zend_read_property(this_ce, this,
@@ -2059,7 +2061,7 @@ PHP_METHOD(Notifier, __construct)
 	zend_call_method_with_0_params(NULL, puremvc_facade_ce, NULL,
 			"getinstance", &return_value);
 	zend_update_property(puremvc_notifier_ce, getThis(), "facade", 6,
-			return_value);
+			return_value TSRMLS_CC);
 
 	puremvc_log_func_io("SimpleCommand", "__construct", 0);
 }
@@ -2097,10 +2099,10 @@ PHP_METHOD(Notifier, sendNotification)
 	}
 
 	this = getThis();
-	facade = zend_read_property(zend_get_class_entry(this), this,
+	facade = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 				"facade", 6, 1 TSRMLS_CC);
 
-	puremvc_call_method_with_3_params(&facade, zend_get_class_entry(facade),
+	puremvc_call_method_with_3_params(&facade, zend_get_class_entry(facade TSRMLS_CC),
 			NULL, "sendnotification", NULL, notificationName, body, type);
 }
 /* }}} */
@@ -2124,7 +2126,7 @@ PHP_METHOD(Observer, __construct)
 	ZVAL_STRINGL(notifyMethod, rawNotifyMethod, rawNotifyMethodLength, 1);
 
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 	zend_call_method_with_1_params(&this, this_ce, NULL,
 		"setnotifymethod", NULL, notifyMethod);
 	zend_call_method_with_1_params(&this, this_ce, NULL,
@@ -2223,7 +2225,7 @@ PHP_METHOD(Observer, notifyObserver)
 	 */
 //// TODO verify the notifyMethod exists on $this->context before calling it..
 //// @note, had to use zend_call_method directly here to use strlen() rather than sizeof()
-	zend_call_method(&notifyContext, zend_get_class_entry(notifyContext), NULL,
+	zend_call_method(&notifyContext, zend_get_class_entry(notifyContext TSRMLS_CC), NULL,
 			Z_STRVAL_P(notifyMethod), Z_STRLEN_P(notifyMethod), NULL, 1, notification, NULL TSRMLS_CC);
 }
 /* }}} */
@@ -2239,7 +2241,7 @@ PHP_METHOD(Observer, compareNotifyContext)
 	}
 
 	this = getThis();
-	context = zend_read_property(zend_get_class_entry(this), this,
+	context = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 					"context", strlen("context"), 1 TSRMLS_CC);
 
 	if(Z_OBJ_HANDLE_P(context) == Z_OBJ_HANDLE_P(object)) {
@@ -2270,7 +2272,7 @@ PHP_METHOD(Proxy, __construct)
 
 	/* setup this && this_ce */
 	this = getThis();
-	this_ce = zend_get_class_entry(this);
+	this_ce = zend_get_class_entry(this TSRMLS_CC);
 
 	/* store a reference to facade in this instance */
 	zend_update_property(this_ce, this, "facade",
@@ -2290,7 +2292,7 @@ PHP_METHOD(Proxy, __construct)
 		ZVAL_STRINGL(proxyName, rawProxyName, rawProxyNameLength, 1);
 	}
 	zend_update_property(this_ce, this, "proxyName",
-		strlen("proxyName"), proxyName);
+		strlen("proxyName"), proxyName TSRMLS_CC);
 
 	/* set data to a zval containing null, if one wasnt provided */
 	if(!data || Z_TYPE_P(data) == IS_NULL) {
@@ -2309,7 +2311,7 @@ PHP_METHOD(Proxy, getProxyName)
 
 	this = getThis();
 
-	proxyName = zend_read_property(zend_get_class_entry(this), this,
+	proxyName = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 					"proxyName", strlen("proxyName"), 1 TSRMLS_CC);
 
 	RETVAL_STRINGL(Z_STRVAL_P(proxyName), Z_STRLEN_P(proxyName), 1);
@@ -2327,7 +2329,7 @@ PHP_METHOD(Proxy, setData)
 	}
 
 	this = getThis();
-	zend_update_property(zend_get_class_entry(this), this,
+	zend_update_property(zend_get_class_entry(this TSRMLS_CC), this,
 		"data", strlen("data"), data TSRMLS_CC);
 
 	this = getThis();
@@ -2340,7 +2342,7 @@ PHP_METHOD(Proxy, getData)
 	zval *data, *this;
 
 	this = getThis();
-	data = zend_read_property(zend_get_class_entry(this), this,
+	data = zend_read_property(zend_get_class_entry(this TSRMLS_CC), this,
 				"data", strlen("data"), 1 TSRMLS_CC);
 
 	RETURN_ZVAL(data, 1, 0);
